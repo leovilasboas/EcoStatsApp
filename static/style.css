@@ -1,0 +1,620 @@
+/* Custom Styles for Ecological Analysis App */
+
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+
+/* Strict Black, White, Green Theme */
+
+/* --- Color Palette --- */
+:root {
+    --app-bg-light: #ffffff;
+    --app-text-light: #212121; /* Dark Gray for less harsh contrast */
+    --app-bg-dark: #121212;   /* Very Dark Gray */
+    --app-text-dark: #f5f5f5;  /* Off-white */
+    --app-green-primary: #28a745; /* Bootstrap Green */
+    --app-green-darker: #218838;
+    --app-green-lighter: #66bb6a; /* Lighter green for dark mode accents */
+    --app-border-light: #dee2e6; /* Light gray border */
+    --app-border-dark: #444444;   /* Dark gray border */
+    --app-card-bg-light: #ffffff;
+    --app-card-bg-dark: #1e1e1e;   /* Slightly lighter dark for cards */
+    --app-header-bg-light: #f8f9fa; /* Very light gray */
+    --app-header-bg-dark: #2c2c2c;
+}
+
+/* --- Base Styles (Light Mode) --- */
+body {
+    font-family: 'Lato', sans-serif;
+    background-color: var(--app-bg-light);
+    color: var(--app-text-light);
+}
+
+.container {
+    max-width: 1140px;
+}
+
+a {
+    color: var(--app-green-primary);
+    text-decoration: none; /* Remove underline */
+    transition: color 0.2s ease;
+}
+a:hover {
+    color: var(--app-green-darker);
+    text-decoration: none;
+}
+
+/* --- Navbar --- */
+.navbar {
+    margin-bottom: 2rem;
+    background-color: var(--app-card-bg-light);
+    border-bottom: 1px solid var(--app-border-light);
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--app-green-primary) !important;
+}
+
+.nav-link {
+    color: var(--app-text-light) !important;
+}
+.nav-link:hover {
+    color: var(--app-green-primary) !important;
+}
+
+/* --- Cards --- */
+.card,
+#upload-form {
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,.08);
+    background-color: var(--app-card-bg-light);
+}
+
+.card:hover {
+    /* transform: translateY(-3px); */
+}
+
+.card-header,
+.model-options-group legend {
+    background-color: var(--app-header-bg-light);
+    font-weight: 700;
+    color: var(--app-text-light);
+    border-bottom: 1px solid var(--app-border-light);
+}
+
+/* --- Buttons --- */
+.btn {
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn-primary {
+    background-color: var(--app-green-primary);
+    border-color: var(--app-green-primary);
+    color: var(--app-bg-light);
+}
+
+.btn-primary:hover {
+    background-color: var(--app-green-darker);
+    border-color: var(--app-green-darker);
+    color: var(--app-bg-light);
+}
+
+.btn-secondary,
+.btn-outline-secondary {
+     background-color: #6c757d; /* Keep neutral gray for secondary? Or make black/white? */
+     border-color: #6c757d;
+     color: #ffffff;
+}
+
+.btn-secondary:hover {
+     background-color: #5a6268;
+     border-color: #545b62;
+     color: #ffffff;
+}
+
+.btn-outline-secondary {
+    color: #6c757d;
+    background-color: transparent;
+}
+.btn-outline-secondary:hover {
+    color: #ffffff;
+    background-color: #6c757d;
+}
+
+/* Let's make secondary black/white */
+.btn-secondary {
+    background-color: var(--app-text-light); 
+    border-color: var(--app-text-light);
+    color: var(--app-bg-light);
+}
+.btn-secondary:hover {
+    background-color: #000000;
+    border-color: #000000;
+    color: var(--app-bg-light);
+}
+.btn-outline-secondary {
+    color: var(--app-text-light);
+    border-color: var(--app-text-light);
+    background-color: transparent;
+}
+.btn-outline-secondary:hover {
+    color: var(--app-bg-light);
+    background-color: var(--app-text-light);
+}
+
+/* Dropdown button styling */
+.dropdown-toggle.btn-outline-secondary {
+     color: var(--app-text-light);
+     border-color: var(--app-border-light);
+}
+.dropdown-toggle.btn-outline-secondary:hover {
+     color: var(--app-text-light);
+     background-color: #eee; /* Subtle hover for dropdown */
+}
+
+/* --- Forms --- */
+.form-label {
+    font-weight: 700;
+    color: var(--app-text-light);
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.25rem;
+    border: 1px solid var(--app-border-light);
+    background-color: var(--app-bg-light);
+    color: var(--app-text-light);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--app-green-primary);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25); /* Green focus ring */
+}
+
+.form-check-input:checked {
+    background-color: var(--app-green-primary);
+    border-color: var(--app-green-primary);
+}
+.form-check-input:focus {
+     border-color: var(--app-green-primary);
+     box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+}
+
+/* --- Results Page --- */
+.results-summary table {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.results-summary .statsmodels-summary th,
+.results-summary .statsmodels-summary td {
+    border-color: var(--app-border-light) !important;
+}
+
+.results-summary .statsmodels-summary th {
+    background-color: var(--app-header-bg-light);
+    color: var(--app-text-light);
+}
+
+.results-summary tr:nth-child(even) {
+    background-color: transparent; /* Remove striping */
+}
+
+pre code {
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: var(--app-header-bg-light);
+    border: 1px solid var(--app-border-light);
+    padding: 1rem;
+    color: var(--app-text-light);
+}
+
+/* --- Plot Images --- */
+.card img.img-fluid {
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+/* --- Alerts (Simplified to Green/Black/White) --- */
+.alert {
+    border: 1px solid transparent;
+    background-color: transparent;
+    color: var(--app-text-light);
+    padding: 0.75rem 1rem;
+}
+.alert-info {
+    border-color: var(--app-green-primary);
+    color: var(--app-green-darker);
+}
+.alert-secondary {
+    border-color: var(--app-border-light);
+    color: #6c757d; /* Keeping muted text for secondary */
+}
+.alert-warning,
+.alert-danger {
+    border-color: var(--app-green-darker);
+    color: var(--app-green-darker);
+    font-weight: bold;
+}
+/* Optional: Add Icons later */
+
+/* --- Helper Classes --- */
+.section-container {
+    margin-top: 2.5rem;
+    margin-bottom: 2.5rem;
+}
+
+h2, h3 {
+    color: var(--app-text-light);
+    margin-bottom: 1rem;
+}
+
+.btn-link {
+    color: var(--app-green-primary);
+}
+.btn-link:hover {
+     color: var(--app-green-darker);
+}
+
+/* --- Specific Page Adjustments --- */
+#upload-form {
+    padding: 2rem;
+    background-color: var(--app-card-bg-light);
+}
+#file-list {
+    margin-top: 2rem;
+}
+.list-group-item {
+     background-color: var(--app-card-bg-light);
+     border-color: var(--app-border-light);
+     color: var(--app-text-light);
+}
+.list-group-item-action:hover {
+     background-color: var(--app-header-bg-light);
+}
+
+#analysis-form .card-body {
+    padding: 2rem;
+}
+.model-options-group {
+    border: 1px solid var(--app-border-light);
+    border-radius: 0.3rem;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    background-color: var(--app-header-bg-light);
+}
+
+/* --- Choices.js Light Mode --- */
+.choices {
+    background-color: var(--app-bg-light);
+    border-color: var(--app-border-light);
+}
+.choices__inner {
+    background-color: var(--app-bg-light);
+    color: var(--app-text-light);
+    border-color: var(--app-border-light);
+}
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+    background-color: var(--app-bg-light);
+    border-color: var(--app-border-light);
+}
+.choices__list--dropdown .choices__item--selectable.is-highlighted,
+.choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+    background-color: var(--app-green-primary);
+    color: var(--app-bg-light);
+}
+.choices__list--multiple .choices__item {
+    background-color: var(--app-green-primary);
+    border-color: var(--app-green-darker);
+    color: var(--app-bg-light);
+}
+.choices__input {
+     background-color: var(--app-bg-light);
+     color: var(--app-text-light);
+}
+
+/* --- Footer --- */
+footer small {
+     color: #6c757d; /* Keep muted gray */
+}
+
+/* =========================== */
+/* --- Dark Mode Overrides --- */
+/* =========================== */
+body.dark-mode {
+    background-color: var(--app-bg-dark);
+    color: var(--app-text-dark);
+}
+
+/* General Text & Links */
+body.dark-mode p,
+body.dark-mode li,
+body.dark-mode label,
+body.dark-mode small,
+body.dark-mode .card-body,
+body.dark-mode .form-check-label {
+    color: var(--app-text-dark) !important;
+}
+
+body.dark-mode a {
+    color: var(--app-green-lighter);
+    transition: color 0.2s ease;
+}
+body.dark-mode a:hover {
+    color: #a5d6a7; /* Even lighter green */
+}
+
+body.dark-mode .text-muted {
+    color: #bdbdbd !important; /* Lighter muted text */
+}
+
+/* Navbar */
+body.dark-mode .navbar {
+    background-color: var(--app-card-bg-dark);
+    border-bottom-color: var(--app-border-dark);
+}
+body.dark-mode .navbar-brand {
+    color: var(--app-green-lighter) !important;
+}
+body.dark-mode .nav-link {
+    color: var(--app-text-dark) !important;
+}
+body.dark-mode .nav-link:hover {
+    color: var(--app-green-lighter) !important;
+}
+
+/* Cards */
+body.dark-mode .card,
+body.dark-mode #upload-form {
+    background-color: var(--app-card-bg-dark);
+}
+
+body.dark-mode .card-header,
+body.dark-mode .model-options-group legend {
+    background-color: var(--app-header-bg-dark);
+    color: var(--app-text-dark);
+    border-bottom-color: var(--app-border-dark);
+}
+
+/* Buttons */
+body.dark-mode .btn-primary {
+    background-color: var(--app-green-lighter);
+    border-color: var(--app-green-lighter);
+    color: var(--app-bg-dark);
+}
+body.dark-mode .btn-primary:hover {
+    background-color: #81c784;
+    border-color: #81c784;
+    color: var(--app-bg-dark);
+}
+
+body.dark-mode .btn-secondary {
+    background-color: var(--app-text-dark);
+    border-color: var(--app-text-dark);
+    color: var(--app-bg-dark);
+}
+body.dark-mode .btn-secondary:hover {
+    background-color: #ffffff;
+    border-color: #ffffff;
+    color: var(--app-bg-dark);
+}
+body.dark-mode .btn-outline-secondary {
+    color: var(--app-text-dark);
+    border-color: var(--app-text-dark);
+}
+body.dark-mode .btn-outline-secondary:hover {
+    color: var(--app-bg-dark);
+    background-color: var(--app-text-dark);
+}
+
+/* Dropdown button */
+body.dark-mode .dropdown-toggle.btn-outline-secondary {
+     color: var(--app-text-dark);
+     border-color: var(--app-border-dark);
+}
+body.dark-mode .dropdown-toggle.btn-outline-secondary:hover {
+     color: var(--app-text-dark);
+     background-color: var(--app-header-bg-dark);
+}
+
+/* Forms */
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: var(--app-header-bg-dark);
+    color: var(--app-text-dark);
+    border-color: var(--app-border-dark);
+}
+body.dark-mode .form-control::placeholder {
+    color: #9e9e9e;
+}
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: var(--app-header-bg-dark);
+    border-color: var(--app-green-lighter);
+    box-shadow: 0 0 0 0.2rem rgba(102, 187, 106, 0.25); /* Lighter Green focus ring */
+    color: var(--app-text-dark);
+}
+body.dark-mode .form-check-input {
+     background-color: #444; /* Dark unchecked state */
+     border-color: var(--app-border-dark);
+}
+body.dark-mode .form-check-input:checked {
+    background-color: var(--app-green-lighter);
+    border-color: var(--app-green-lighter);
+}
+body.dark-mode .form-check-input:focus {
+     border-color: var(--app-green-lighter);
+     box-shadow: 0 0 0 0.25rem rgba(102, 187, 106, 0.25);
+}
+
+/* Results Table */
+body.dark-mode .results-summary table,
+body.dark-mode .results-summary .statsmodels-summary td,
+body.dark-mode .results-summary .statsmodels-summary th {
+    color: var(--app-text-dark) !important;
+    border-color: var(--app-border-dark) !important;
+}
+body.dark-mode .results-summary .statsmodels-summary th {
+     background-color: var(--app-header-bg-dark);
+}
+body.dark-mode .results-summary tr:nth-child(even) {
+    background-color: var(--app-card-bg-dark);
+}
+
+/* Log Box */
+body.dark-mode pre code {
+    background-color: var(--app-bg-dark);
+    border-color: var(--app-border-dark);
+    color: var(--app-text-dark);
+}
+
+/* Alerts - Use Green Border */
+body.dark-mode .alert {
+    background-color: transparent !important; /* Ensure no bg color */
+    color: var(--app-text-dark) !important;
+    border: 1px dashed var(--app-green-lighter);
+}
+body.dark-mode .alert-info,
+body.dark-mode .alert-secondary,
+body.dark-mode .alert-warning,
+body.dark-mode .alert-danger {
+    border-color: var(--app-green-lighter);
+}
+body.dark-mode .alert .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Collapse Buttons */
+body.dark-mode .btn-link {
+    color: var(--app-green-lighter);
+}
+body.dark-mode .btn-link:hover {
+    color: #a5d6a7;
+}
+
+/* Choices.js Dark Mode */
+body.dark-mode .choices {
+    background-color: var(--app-header-bg-dark);
+    border-color: var(--app-border-dark);
+}
+body.dark-mode .choices__inner {
+    background-color: var(--app-header-bg-dark);
+    color: var(--app-text-dark);
+    border-color: var(--app-border-dark);
+}
+body.dark-mode .choices__list--dropdown,
+body.dark-mode .choices__list[aria-expanded] {
+    background-color: var(--app-card-bg-dark);
+    border-color: var(--app-border-dark);
+}
+body.dark-mode .choices__list--dropdown .choices__item--selectable.is-highlighted,
+body.dark-mode .choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+    background-color: var(--app-green-primary); /* Use primary green for highlight */
+    color: var(--app-bg-light);
+}
+body.dark-mode .choices__item,
+body.dark-mode .choices__item--selectable {
+     color: var(--app-text-dark);
+}
+body.dark-mode .choices__list--multiple .choices__item {
+    background-color: var(--app-green-lighter);
+    border-color: var(--app-green-primary);
+    color: var(--app-bg-dark);
+}
+body.dark-mode .choices__input {
+     background-color: var(--app-header-bg-dark);
+     color: var(--app-text-dark);
+}
+
+/* Footer */
+body.dark-mode footer small {
+    color: #9e9e9e !important;
+}
+
+/* --- List Group Dark Mode --- */
+body.dark-mode .list-group-item {
+     background-color: var(--app-card-bg-dark); /* Match card background */
+     border-color: var(--app-border-dark);
+     color: var(--app-text-dark);
+}
+body.dark-mode .list-group-item-action:hover,
+body.dark-mode .list-group-item-action:focus {
+     background-color: var(--app-header-bg-dark); /* Slightly lighter background on hover */
+     color: var(--app-text-dark);
+}
+body.dark-mode .list-group-item .badge {
+    background-color: var(--app-text-dark) !important; /* White badge */
+    color: var(--app-bg-dark) !important; /* Black text */
+}
+
+/* Dropdown Menu Override - Keep White */
+body.dark-mode .dropdown-menu {
+    background-color: var(--app-bg-light);
+    border: 1px solid var(--app-border-light);
+    color: var(--app-text-light);
+}
+body.dark-mode .dropdown-item {
+    color: var(--app-text-light);
+}
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    color: var(--app-text-light);
+    background-color: var(--app-header-bg-light);
+}
+
+/* --- Specific Adjustments for analyze.html Options --- */
+body.dark-mode .model-options-group {
+    background-color: var(--app-card-bg-dark); /* Match card background */
+    border-color: var(--app-border-dark);
+}
+body.dark-mode .model-options-group legend {
+    color: var(--app-text-dark);
+    background-color: transparent;
+    border-bottom: 1px solid var(--app-border-dark);
+}
+body.dark-mode .model-options-group .alert {
+    background-color: transparent;
+    border: 1px dashed var(--app-green-lighter); 
+    color: var(--app-text-dark) !important;
+}
+body.dark-mode .model-options-group .alert-info {
+     border-color: var(--app-green-lighter);
+}
+
+/* --- Dark Mode Tab Styling --- */
+body.dark-mode .nav-tabs {
+    border-bottom-color: #495057; /* Darker border for the tab container */
+}
+
+body.dark-mode .nav-tabs .nav-link {
+    color: #adb5bd; /* Lighter grey text for inactive tabs */
+    background-color: transparent; /* Ensure no light background */
+    border-color: transparent transparent #495057 transparent; /* Match bottom border */
+}
+
+body.dark-mode .nav-tabs .nav-link:hover,
+body.dark-mode .nav-tabs .nav-link:focus {
+    border-color: transparent transparent #6c757d transparent; /* Slightly lighter border on hover */
+    color: #dee2e6; /* Lighter text on hover */
+    isolation: isolate; /* Needed for Bootstrap 5 */
+}
+
+body.dark-mode .nav-tabs .nav-link.active,
+body.dark-mode .nav-tabs .nav-item.show .nav-link { /* Style for the active tab */
+    color: #e9ecef; /* Bright text for active tab */
+    background-color: #343a40; /* Dark background for active tab */
+    border-color: #495057 #495057 #343a40; /* Borders match dark background */
+}
+
+/* Ensure card body within tabs also has dark background */
+body.dark-mode .card-header-tabs + .card-body {
+     background-color: #212529; /* Match card background */
+     /* border: 1px solid #495057; */ /* Optional: Add border if needed */
+     /* border-top: none; */
+} 

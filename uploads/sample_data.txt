@@ -1,0 +1,14 @@
+# Exemplo de dados ecológicos
+# Colunas separadas por tabulação (\t)
+# Primeira linha contém os nomes das variáveis
+
+Habitat	Riqueza	Area	TemperaturaMedia
+Floresta	25	150.5	22.1
+Campo	15	300.2	25.3
+Floresta	32	120.8	21.5
+Rio	10	50.0	19.8
+Campo	18	250.7	26.1
+Floresta	28	180.3	22.5
+Campo	20	280.1	25.8
+Rio	12	65.4	20.1
+Floresta	22	165.9	21.9 

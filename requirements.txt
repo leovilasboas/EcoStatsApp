@@ -1,0 +1,12 @@
+Flask
+Flask-Session
+pandas
+statsmodels
+scipy
+patsy
+matplotlib
+seaborn
+openpyxl
+# rpy2 # Removed due to integration issues 
+requests # For calling external APIs 
+gunicorn # Added WSGI server for production 

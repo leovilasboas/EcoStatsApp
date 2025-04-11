@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block title %}Configure Analysis for {{ filename }} - {{ super() }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Hide elements initially */
+    .hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-sliders me-2"></i>Configure Analysis: {{ filename }}</h1>
+
+<!-- Data Preview Section (Collapsible) -->
+{% if preview_html %}
+<div class="mb-4">
+    <h2 class="h5">
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePreview" aria-expanded="false" aria-controls="collapsePreview">
+            <i class="bi bi-eye-fill me-2"></i>Data Preview (First 5 Rows)
+        </button>
+    </h2>
+    <div id="collapsePreview" class="collapse">
+        <div class="card card-body">
+            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                {{ preview_html | safe }}
+            </div>
+             <small class="text-muted mt-2">Verify that data and column names were read correctly. Cleaned names used for modeling: {{ columns | join(', ') }}</small>
+        </div>
+    </div>
+</div>
+{% endif %}
+<!-- End Data Preview Section -->
+
+<form id="analysis-form" action="{{ url_for('analyze', filename=filename) }}" method="post">
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-gear-fill me-2"></i>Model Configuration</div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <!-- Dependent Variable -->
+                <div class="col-md-6">
+                    <label for="dependent_var" class="form-label">Dependent Variable (Y):</label>
+                    <select id="dependent_var" name="dependent_var" class="form-select" required>
+                        <option value="" disabled selected>Select Variable</option>
+                        {% for col in columns %}
+                        <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="dep_var_description" class="form-label mt-2">Describe Dependent Variable:</label>
+                    <input type="text" id="dep_var_description" name="dep_var_description" class="form-control form-control-sm" placeholder="e.g., Body mass in grams">
+                </div>
+
+                <!-- Model Type -->
+                <div class="col-md-6">
+                    <label for="model_type" class="form-label">Model Type:</label>
+                    <select id="model_type" name="model_type" class="form-select" required onchange="toggleModelOptions()">
+                        <option value="" disabled selected>Select Model</option>
+                        <option value="lm">Linear Model (LM)</option>
+                        <option value="glm">Generalized Linear Model (GLM)</option>
+                        <option value="lmm">Linear Mixed Model (LMM)</option>
+                        <option value="glmm">Generalized Linear Mixed Model (GLMM/GEE)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Independent Variables -->
+            <div class="mb-3">
+                <label for="independent_vars" class="form-label">Independent Variable(s) (X):</label>
+                <select id="independent_vars" name="independent_vars" class="form-select" multiple required size="8">
+                    {% for col in columns %}
+                    <option value="{{ col }}">{{ col }}</option>
+                    {% endfor %}
+                </select>
+                <div id="indep_var_descriptions" class="mt-2">
+                    <!-- Description fields will be added here by JS -->
+                </div>
+                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple variables. Describe selected variables below.</small>
+            </div>
+
+            <!-- AIC Selection Checkbox -->
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="perform_aic" id="perform_aic" value="on">
+                <label class="form-check-label" for="perform_aic">
+                    Perform Model Selection using AIC/QIC (Backward Elimination)
+                </label>
+                 <small class="form-text text-muted d-block">Requires >1 predictor. Note: QIC selection for GEE is not yet fully implemented (returns full model).</small>
+            </div>
+
+            <!-- GLM Specific Options (Hidden by default) -->
+            <div id="glm_options" class="hidden model-options-group">
+                <legend>GLM Options</legend>
+                <div class="mb-3">
+                    <label for="glm_family" class="form-label">Family:</label>
+                    <select id="glm_family" name="glm_family" class="form-select">
+                        <option value="auto" selected>Auto-Select (Default)</option>
+                        <option value="gaussian">Gaussian</option>
+                        <option value="binomial">Binomial</option>
+                        <option value="poisson">Poisson</option>
+                        <option value="gamma">Gamma</option>
+                        <option value="inverse_gaussian">Inverse Gaussian</option>
+                        <!-- Add other families if needed -->
+                    </select>
+                    <small class="form-text text-muted">Select the distribution family for GLM. 'Auto-Select' uses heuristics based on the dependent variable.</small>
+                </div>
+            </div>
+
+            <!-- LMM/GEE Specific Options (Hidden by default) -->
+            <div id="lmm_options" class="hidden model-options-group">
+                <legend>LMM / GEE Options</legend>
+                <div class="mb-3">
+                    <label for="grouping_vars" class="form-label">Grouping Variable(s):</label>
+                    <select id="grouping_vars" name="grouping_vars" class="form-select" multiple size="3">
+                        {# Options populated by JS #}
+                    </select>
+                     <small class="form-text text-muted">Required for LMM/GEE. Currently uses only the first selected variable.</small>
+                </div>
+                 <!-- Family Selection for GEE -->
+                 <div class="mb-3">
+                    <label for="gee_family" class="form-label">Family (for GEE):</label>
+                    <select id="gee_family" name="gee_family" class="form-select">
+                        <option value="auto" selected>Auto-Select (Default)</option>
+                        <option value="gaussian">Gaussian</option>
+                        <option value="binomial">Binomial</option>
+                        <option value="poisson">Poisson</option>
+                        <option value="gamma">Gamma</option>
+                        <option value="inverse_gaussian">Inverse Gaussian</option>
+                    </select>
+                    <small class="form-text text-muted">Select the distribution family for GEE. 'Auto-Select' uses heuristics.</small>
+                </div>
+                 <!-- GEE Covariance Structure -->
+                 <div class="mb-3">
+                    <label for="gee_cov_struct" class="form-label">Covariance Structure (for GEE):</label>
+                    <select id="gee_cov_struct" name="gee_cov_struct" class="form-select">
+                        <option value="exchangeable" selected>Exchangeable (Default)</option>
+                        <option value="independence">Independence</option>
+                        <option value="autoregressive">Autoregressive (AR-1)</option>
+                        <!-- Add other structures if needed -->
+                    </select>
+                    <small class="form-text text-muted">Select the working correlation structure for GEE.</small>
+                </div>
+                <!-- Random Effects for LMM -->
+                <div class="mb-3">
+                    <label for="random_effects_formula" class="form-label">Random Effects Formula Structure (LMM Only):</label>
+                    <input type="text" id="random_effects_formula" name="random_effects_formula" class="form-control" placeholder="e.g., 1 + X | Group (omit ~)">
+                     <small class="form-text text-muted">Optional for LMM. Defines random intercepts/slopes. Leave blank for random intercepts only.</small>
+                </div>
+                <div class="alert alert-info" role="alert">
+                    For GEE (selected as GLMM), Covariance Structure defaults to Exchangeable.
+                </div>
+            </div>
+
+            <!-- NEW: API Token Input -->
+            <div class="mt-4 pt-3 border-top">
+                 <label for="hf_api_token" class="form-label">Hugging Face API Token (Optional):</label>
+                 <input type="password" id="hf_api_token" name="hf_api_token" class="form-control" placeholder="Enter your read token (hf_...)">
+                 <small class="form-text text-muted">Needed for AI interpretation. Your token will be sent with the analysis request. Get a token from Hugging Face settings. Leave blank to disable AI interpretation.</small>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2"><i class="bi bi-x-circle me-1"></i>Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-play-circle-fill me-2"></i>Run Analysis</button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function toggleModelOptions() {
+        const modelType = document.getElementById('model_type').value;
+        const glmOptions = document.getElementById('glm_options');
+        const lmmOptions = document.getElementById('lmm_options');
+
+        // Hide all specific options first
+        glmOptions.classList.add('hidden');
+        lmmOptions.classList.add('hidden');
+
+        // Ensure grouping/random effects are not required if model type changes away from LMM/GEE
+        const groupingSelect = document.getElementById('grouping_vars');
+        const randomFormulaInput = document.getElementById('random_effects_formula');
+
+        if (modelType === 'glm') {
+            glmOptions.classList.remove('hidden');
+            groupingSelect.required = false;
+        } else if (modelType === 'lmm' || modelType === 'glmm') {
+            lmmOptions.classList.remove('hidden');
+            groupingSelect.required = true;
+        } else {
+            // Neither GLM nor LMM/GEE
+            groupingSelect.required = false;
+        }
+    }
+
+    // Initial call in case the page is loaded with a model type already selected (e.g., validation error)
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleModelOptions();
+        
+        const depVarSelect = document.getElementById('dependent_var');
+        const indepVarSelectElement = document.getElementById('independent_vars');
+        const groupingVarsSelectElement = document.getElementById('grouping_vars');
+        
+        // --- Store original options for independent vars *before* initializing Choices.js ---
+        const originalIndepVarOptions = Array.from(indepVarSelectElement.options).map(opt => ({
+            value: opt.value,
+            label: opt.label
+        }));
+        
+        // --- Initialize Choices.js --- 
+        let choicesIndep = null; 
+        let choicesGroup = null;
+        
+        if (indepVarSelectElement) {
+            choicesIndep = new Choices(indepVarSelectElement, {
+                 removeItemButton: true,
+                 allowHTML: false,
+                 shouldSort: false, // Keep original order
+                 placeholder: true,
+                 placeholderValue: 'Select predictor(s)...',
+            });
+        }
+        if (groupingVarsSelectElement) {
+             choicesGroup = new Choices(groupingVarsSelectElement, {
+                 removeItemButton: true,
+                 allowHTML: false,
+                 shouldSort: false,
+                 placeholder: true,
+                 placeholderValue: 'Select group variable(s)...',
+                 maxItemCount: 1, // Limit to one for now based on current backend logic
+            });
+        }
+
+        // --- Function to update Independent Variable Choices --- 
+        function updateIndependentChoices() {
+            if (!choicesIndep || !depVarSelect) return; // Exit if elements don't exist
+
+            const selectedDepVar = depVarSelect.value;
+            
+            // --- New Step: Remove selected dependent variable from independent choices --- 
+            const currentSelectedIndepValues = choicesIndep.getValue(true); // Get values of currently selected items
+            if (currentSelectedIndepValues.includes(selectedDepVar)) {
+                console.log(`Removing ${selectedDepVar} from selected independent vars.`); 
+                choicesIndep.removeItem(selectedDepVar);
+            }
+            // --- End New Step ---
+
+            // Filter the original options, excluding the selected dependent variable
+            const filteredChoices = originalIndepVarOptions.filter(choice => choice.value !== selectedDepVar);
+            
+            console.log(`Updating independent choices list. Excluding: ${selectedDepVar}`); 
+
+            // Replace the choices in the Choices.js dropdown instance
+            // The last 'true' argument forces replacement of the list
+            choicesIndep.setChoices(filteredChoices, 'value', 'label', true);
+        }
+
+        // --- Function to create/update description fields --- 
+        const descriptionContainer = document.getElementById('indep_var_descriptions');
+        function updateDescriptionFields() {
+            if (!choicesIndep || !descriptionContainer) return;
+            
+            const selectedItems = choicesIndep.getValue(true); // Get values of selected items
+            const existingFields = descriptionContainer.querySelectorAll('input[data-variable]');
+            const existingVars = Array.from(existingFields).map(input => input.dataset.variable);
+            
+            // Remove fields for variables that are no longer selected
+            existingFields.forEach(input => {
+                if (!selectedItems.includes(input.dataset.variable)) {
+                    input.closest('.indep-var-desc-group').remove();
+                }
+            });
+
+            // Add fields for newly selected variables
+            selectedItems.forEach(variable => {
+                if (!existingVars.includes(variable)) {
+                    const div = document.createElement('div');
+                    div.classList.add('mb-2', 'indep-var-desc-group');
+                    div.innerHTML = `
+                        <label for="desc_${variable}" class="form-label form-label-sm">Describe \`${variable}\`:</label>
+                        <input type="text" id="desc_${variable}" name="desc_${variable}" 
+                               data-variable="${variable}" 
+                               class="form-control form-control-sm" 
+                               placeholder="e.g., Index of body fat">
+                    `;
+                    descriptionContainer.appendChild(div);
+                }
+            });
+        }
+
+        // --- Add Event Listener and Initial Call --- 
+        if (depVarSelect) {
+            depVarSelect.addEventListener('change', updateIndependentChoices);
+             // Initial update on page load in case a dependent var is already selected
+            updateIndependentChoices(); 
+        }
+        
+        // Listener for changes in independent variable selection
+        if (indepVarSelectElement) {
+             indepVarSelectElement.addEventListener('change', updateDescriptionFields, false);
+             // Initial call to generate fields for any pre-selected values (e.g., on validation error refresh)
+             setTimeout(updateDescriptionFields, 100); // Delay slightly to ensure Choices.js is ready
+        }
+    });
+</script>
+{% endblock %} 

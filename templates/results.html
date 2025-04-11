@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+{% block title %}Analysis Results for {{ filename }} - {{ super() }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-clipboard-data-fill me-2"></i>Analysis Results: {{ filename }}</h1>
+
+{# --- Restore Summary Sections --- #}
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-info-circle-fill me-2"></i>Analysis Summary</div>
+    <div class="card-body">
+        <p><strong>Model Type:</strong> {{ model_description }}</p>
+    </div>
+</div>
+
+<!-- Model Summary Table -->
+<div class="section-container">
+    <h2>
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary" aria-expanded="true" aria-controls="collapseSummary">
+            <i class="bi bi-table me-2"></i>Model Summary
+        </button>
+    </h2>
+    <div id="collapseSummary" class="collapse show">
+        <div class="results-summary card">
+             <div class="card-header d-flex justify-content-between align-items-center">
+                 <span>Model Output</span>
+                 <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('summary-content')">
+                     <i class="bi bi-clipboard me-1"></i> Copy Summary
+                 </button>
+             </div>
+             <div class="card-body table-responsive" id="summary-content">
+                 {{ results_summary | safe }}
+             </div>
+        </div>
+    </div>
+</div>
+{# --- End Restore Summary --- #}
+
+<!-- NEW: AI Interactions Section with Tabs -->
+<div class="section-container mt-4 mb-4">
+    <h2>
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAIInteractions" aria-expanded="true" aria-controls="collapseAIInteractions">
+            <i class="bi bi-stars me-2"></i>AI Interactions
+        </button>
+    </h2>
+    <div id="collapseAIInteractions" class="collapse show">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="aiTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="initial-interp-tab" data-bs-toggle="tab" data-bs-target="#initial-interp-pane" type="button" role="tab" aria-controls="initial-interp-pane" aria-selected="true">Automated Interpretation</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="chat-gen-tab" data-bs-toggle="tab" data-bs-target="#chat-gen-pane" type="button" role="tab" aria-controls="chat-gen-pane" aria-selected="false">Chat & Generation</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="aiTabsContent">
+                    <!-- Tab 1: Automated Interpretation -->
+                    <div class="tab-pane fade show active" id="initial-interp-pane" role="tabpanel" aria-labelledby="initial-interp-tab" tabindex="0">
+                        {% if ai_interpretation %}
+                            <div id="ai-interpretation-content-wrapper">
+                                 <button class="btn btn-sm btn-outline-secondary float-end mb-2" onclick="copyToClipboard('ai-interpretation-display')">
+                                     <i class="bi bi-clipboard me-1"></i> Copy Text
+                                 </button>
+                                 <div id="ai-interpretation-display">
+                                      <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ ai_interpretation }}</pre>
+                                 </div>
+                                 <small class="text-muted d-block mt-2">*AI interpretation requires configuration (HF_API_TOKEN) and depends on the external model's availability and capabilities. Always review critically.*</small>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-secondary">Automated AI interpretation was disabled or failed.</div>
+                        {% endif %}
+                    </div>
+                    <!-- Tab 2: Chat & Generation -->
+                    <div class="tab-pane fade" id="chat-gen-pane" role="tabpanel" aria-labelledby="chat-gen-tab" tabindex="0">
+                        <div id="interactive-ai-section">
+                            <div id="chat-history" class="mb-3" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 5px;">
+                                <div class="text-muted">Ask a question about the analysis (e.g., "Explain the effect of FAT", "Summarize the main findings").</div>
+                            </div>
+                            <div class="input-group mb-3">
+                                <input type="text" id="user-ai-query" class="form-control" placeholder="Your question...">
+                                <button class="btn btn-primary" type="button" id="send-ai-query-btn" onclick="sendAiQuery('chat')">
+                                     <i class="bi bi-send"></i> Send
+                                </button>
+                             </div>
+                             <button class="btn btn-secondary" type="button" id="generate-article-btn" onclick="sendAiQuery('generate_article')">
+                                 <i class="bi bi-file-earmark-text me-1"></i> Generate Full Results Section (Article Style)
+                             </button>
+                             <div id="ai-response-spinner" class="spinner-border text-primary mt-2 d-none" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                             </div>
+                             {# Ensure this area is cleared and shown correctly #}
+                            <div id="ai-response-area" class="mt-3 alert d-none"></div> 
+                             <small class="text-muted d-block mt-2">*AI responses require the API token used for the analysis and depend on model capabilities. Responses are based solely on the provided analysis context.*</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END AI Interactions Section -->
+
+<!-- Interpretation Section -->
+{% if interpretation %}
+<div class="section-container">
+     <h2>
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInterpretation" aria-expanded="true" aria-controls="collapseInterpretation">
+            <i class="bi bi-lightbulb-fill me-2"></i>Interpretation
+        </button>
+    </h2>
+    <div id="collapseInterpretation" class="collapse show">
+        <div class="card">
+             <div class="card-body">
+                {{ interpretation | markdown | safe }}
+             </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- NEW: Formal Results Summary Section -->
+{% if formal_results_text %}
+<div class="section-container">
+     <h2>
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFormal" aria-expanded="true" aria-controls="collapseFormal">
+            <i class="bi bi-file-earmark-text-fill me-2"></i>Formal Results Summary (Automated)
+        </button>
+    </h2>
+    <div id="collapseFormal" class="collapse show">
+        <div class="card">
+             <div class="card-header d-flex justify-content-between align-items-center">
+                 <span>Narrative Summary</span>
+                 <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('formal-results-content')">
+                     <i class="bi bi-clipboard me-1"></i> Copy Text
+                 </button>
+             </div>
+             <div class="card-body" id="formal-results-content">
+                 {{ formal_results_text | markdown | safe }}
+             </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Restored: AIC Selection Log -->
+{% if selection_log %}
+<div class="section-container">
+     <h2>
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLog" aria-expanded="false" aria-controls="collapseLog">
+             <i class="bi bi-filter-circle-fill me-2"></i>AIC/QIC Selection Log
+        </button>
+    </h2>
+    <div id="collapseLog" class="collapse">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Log Details</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('log-content')">
+                    <i class="bi bi-clipboard me-1"></i> Copy Log
+                </button>
+            </div>
+            <div class="card-body">
+                <pre id="log-content"><code>{{ selection_log }}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Re-inserting Plots Section cleanly -->
+<div class="section-container">
+    <h2>
+        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePlots" aria-expanded="true" aria-controls="collapsePlots">
+            <i class="bi bi-image-fill me-2"></i>Plots
+        </button>
+    </h2>
+    <div id="collapsePlots" class="collapse show">
+        <!-- Diagnostic Plots Row -->
+        <h3 class="h5 mt-3 mb-3">
+            <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDiagPlots" aria-expanded="true" aria-controls="collapseDiagPlots">
+                Diagnostic Plots
+            </button>
+        </h3>
+        <div id="collapseDiagPlots" class="collapse show">
+            <div class="row">
+                {% if plot_urls.resid_vs_fitted %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">Residuals vs Fitted</div>
+                        <div class="card-body text-center">
+                            <img src="{{ plot_urls.resid_vs_fitted }}" alt="Residuals vs Fitted Plot" class="img-fluid">
+                            <!-- Download Dropdown -->
+                            <div class="dropdown mt-2">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="downloadResidFitted" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Download As
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="downloadResidFitted">
+                                    <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type='resid_vs_fitted', unique_id=session_id, format='png') }}">PNG</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type='resid_vs_fitted', unique_id=session_id, format='svg') }}">SVG</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type='resid_vs_fitted', unique_id=session_id, format='jpg') }}">JPEG</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %} {# Closes if plot_urls.resid_vs_fitted #}
+                {% if plot_urls.qq_plot %}
+                <div class="col-md-6 mb-4">
+                     <div class="card h-100">
+                        <div class="card-header">Normal Q-Q Plot</div>
+                        <div class="card-body text-center">
+                             <img src="{{ plot_urls.qq_plot }}" alt="Normal Q-Q Plot" class="img-fluid">
+                             <!-- Download Dropdown -->
+                             <div class="dropdown mt-2">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="downloadQQ" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Download As
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="downloadQQ">
+                                    <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type='qq_plot', unique_id=session_id, format='png') }}">PNG</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type='qq_plot', unique_id=session_id, format='svg') }}">SVG</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type='qq_plot', unique_id=session_id, format='jpg') }}">JPEG</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %} {# Closes if plot_urls.qq_plot #}
+                
+                {# Message if no diagnostic plots #}
+                {% if not plot_urls.resid_vs_fitted and not plot_urls.qq_plot %}
+                 <div class="col-12">
+                     <div class="alert alert-warning" role="alert">
+                        Could not generate diagnostic plots for this model or an error occurred.
+                     </div>
+                 </div>
+                {% endif %} {# Closes if not plot_urls... #}
+            </div> {# Closes row #}
+        </div> {# Closes collapseDiagPlots #}
+
+        <!-- Effect Plots Row -->
+        <h3 class="h5 mt-4 mb-3">
+            <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEffectPlots" aria-expanded="true" aria-controls="collapseEffectPlots">
+                Predictor Effect Plots
+            </button>
+        </h3>
+        <div id="collapseEffectPlots" class="collapse show">
+            <div class="row">
+                {% if effect_plots %}
+                    {% for plot_data in effect_plots %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">Effect: {{ plot_data.predictor }}</div>
+                            <div class="card-body text-center">
+                                <img src="{{ plot_data.url }}" alt="Effect plot for {{ plot_data.predictor }}" class="img-fluid mb-2">
+                                 <!-- Download Dropdown -->
+                                 <div class="dropdown mt-2">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="download{{ plot_data.predictor }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Download As
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="download{{ plot_data.predictor }}">
+                                        <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type=plot_data.plot_type_for_download, unique_id=session_id, format='png') }}">PNG</a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type=plot_data.plot_type_for_download, unique_id=session_id, format='svg') }}">SVG</a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('download_plot', plot_type=plot_data.plot_type_for_download, unique_id=session_id, format='jpg') }}">JPEG</a></li>
+                                    </ul>
+                                </div>
+                                <p class="card-text text-start small fst-italic mt-2">
+                                    {{ plot_data.interpretation | markdown | safe }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %} {# Closes for plot_data #}
+                {% else %}
+                    <div class="col-12">
+                         <div class="alert alert-secondary" role="alert">
+                             No predictor effect plots were generated (e.g., no predictors left after selection, or plotting error).
+                         </div>
+                    </div>
+                {% endif %} {# Closes if effect_plots #}
+            </div> {# Closes row #}
+        </div> {# Closes collapseEffectPlots #}
+    </div> {# Closes collapsePlots #}
+</div> {# Closes section-container for Plots #}
+
+<!-- Container to hold analysis context for JS -->
+<div id="analysis-context-data"
+     data-dependent-var="{{ dependent_var|e }}"
+     data-final-predictors='{{ final_predictors|tojson|safe }}'
+     data-dep-var-desc="{{ dep_var_desc|e }}"
+     data-indep-var-descriptions='{{ indep_var_descriptions|tojson|safe }}'
+     data-results-summary='{{ results_summary|tojson|safe }}'
+     data-formal-results-text='{{ formal_results_text|tojson|safe }}'
+     data-model-description="{{ model_description|e }}"
+     data-user-api-token="{{ user_api_token|e }}"
+></div>
+
+<div class="mt-5 mb-4 text-center">
+    <a href="{{ url_for('analyze', filename=filename) }}" class="btn btn-secondary"><i class="bi bi-arrow-repeat me-1"></i>Run New Analysis on {{ filename }}</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary ms-2"><i class="bi bi-house-door-fill me-1"></i>Back to Home / Upload</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{# Restore full scripts block #}
+<script>
+// Function to handle copying text
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    let textToCopy = '';
+    if (element.tagName === 'PRE') {
+        // For logs, get the text content
+        textToCopy = element.textContent || element.innerText;
+    } else if (element.id === 'summary-content' && element.querySelector('table')) {
+        // Special handling for summary table if needed
+        const table = element.querySelector('table');
+        textToCopy = table.innerText; 
+    } else {
+         // For other divs (like formal results, ai interpretation), get innerText
+         textToCopy = element.innerText;
+    }
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('Copied to clipboard!'); 
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert('Failed to copy text.');
+        });
+    } else {
+        // Fallback for older browsers
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Copied to clipboard! (fallback)');
+        } catch (err) {
+             console.error('Fallback copy failed: ', err);
+             alert('Failed to copy text.');
+        }
+    }
+}
+
+// --- AI Chat and Generation Functions --- 
+
+// Read context from data attributes
+let analysisContext = {};
+let userApiToken = '';
+try {
+    const contextElement = document.getElementById('analysis-context-data');
+    if (contextElement) {
+        analysisContext = {
+            dependent_var: contextElement.dataset.dependentVar,
+            final_predictors: JSON.parse(contextElement.dataset.finalPredictors || '[]'),
+            dep_var_desc: contextElement.dataset.depVarDesc,
+            indep_var_descriptions: JSON.parse(contextElement.dataset.indepVarDescriptions || '{}'),
+            results_summary: JSON.parse(contextElement.dataset.resultsSummary || 'null'),
+            formal_results_text: JSON.parse(contextElement.dataset.formalResultsText || 'null'),
+            model_description: contextElement.dataset.modelDescription
+        };
+        userApiToken = contextElement.dataset.userApiToken;
+        console.log("Analysis context loaded from data attributes.");
+    } else {
+        console.warn("#analysis-context-data element not found.");
+        // Disable AI section if context is critical and not found
+        const interactiveSection = document.getElementById('interactive-ai-section');
+        if(interactiveSection) interactiveSection.style.display = 'none'; 
+    }
+} catch (e) {
+    console.error("Error reading analysis context from data attributes:", e);
+    alert("Fatal Error: Could not load analysis context for AI features.");
+    const interactiveSection = document.getElementById('interactive-ai-section');
+    if (interactiveSection) interactiveSection.style.display = 'none'; 
+}
+
+function escapeHtml(unsafe) {
+     return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+function appendToChatHistory(sender, message, isHtml = false) {
+    const chatHistory = document.getElementById('chat-history');
+    if (!chatHistory) return;
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add(sender === 'user' ? 'text-end' : 'text-start', 'mb-2');
+    const badgeClass = sender === 'user' ? 'bg-secondary' : 'bg-primary';
+    const badgeText = sender === 'user' ? 'You' : 'AI';
+    
+    if (isHtml) {
+         messageDiv.innerHTML = `<span class="badge ${badgeClass} me-1">${badgeText}</span><div style="display: inline-block; padding: 5px 10px; border-radius: 10px; background-color: #f0f0f0;">${message}</div>`;
+    } else {
+         messageDiv.innerHTML = `<span class="badge ${badgeClass} me-1">${badgeText}</span><div style="display: inline-block; padding: 5px 10px; border-radius: 10px; background-color: #f0f0f0;">${escapeHtml(message)}</div>`;
+    }
+    
+    chatHistory.appendChild(messageDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+
+async function sendAiQuery(taskType) {
+    const userQueryInput = document.getElementById('user-ai-query');
+    const aiResponseArea = document.getElementById('ai-response-area');
+    const spinner = document.getElementById('ai-response-spinner');
+    const sendButton = document.getElementById('send-ai-query-btn');
+    const generateButton = document.getElementById('generate-article-btn');
+
+    if (!userQueryInput || !aiResponseArea || !spinner || !sendButton || !generateButton) {
+        console.error("One or more AI UI elements not found.");
+        return;
+    }
+
+    const userQuery = userQueryInput.value.trim();
+    let promptToSend = userQuery;
+    if (taskType === 'generate_article') {
+        promptToSend = "Generate the full results section.";
+    }
+
+    if (taskType === 'chat' && !promptToSend) { 
+        alert("Please enter a question for the chat.");
+        return;
+    }
+
+    if (!userApiToken) {
+        alert("AI interaction requires the Hugging Face API token used during the analysis.");
+        return;
+    }
+
+    userQueryInput.disabled = true;
+    sendButton.disabled = true;
+    generateButton.disabled = true;
+    spinner.classList.remove('d-none');
+    aiResponseArea.classList.add('d-none'); 
+    aiResponseArea.classList.remove('alert-danger', 'alert-info');
+
+    if (taskType === 'chat') {
+        appendToChatHistory('user', userQuery);
+        userQueryInput.value = '';
+    }
+
+    try {
+        const response = await fetch('/ask_ai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt: promptToSend,
+                context: analysisContext,
+                api_token: userApiToken,
+                task_type: taskType
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+            const errorMessage = result.error || `HTTP error! status: ${response.status}`;
+            aiResponseArea.textContent = `Error: ${errorMessage}`;
+            aiResponseArea.classList.add('alert-danger');
+             if (taskType === 'chat') {
+                  appendToChatHistory('ai', `Error: ${errorMessage}`);
+             }
+             // Show error in response area even for chat errors
+             aiResponseArea.classList.remove('d-none'); 
+        } else {
+            // Success
+            aiResponseArea.innerHTML = result.response.replace(/\n/g, '<br>'); // Display with line breaks
+            aiResponseArea.classList.remove('alert-danger'); // Ensure no error style
+            aiResponseArea.classList.add('alert-info'); // Use info style
+             if (taskType === 'chat') {
+                  // Render AI chat response as HTML (since it might contain formatting)
+                  appendToChatHistory('ai', result.response.replace(/\n/g, '<br>'), true);
+                  // Keep response area hidden for chat, as it's shown in history
+                  aiResponseArea.classList.add('d-none'); 
+             } else {
+                  // For article generation, show the response in the dedicated area
+                  aiResponseArea.classList.remove('d-none');
+             }
+        }
+    } catch (error) {
+        console.error('Error calling AI API:', error);
+        const errorText = `Network or client-side error: ${error.message}`;
+        aiResponseArea.textContent = errorText;
+        aiResponseArea.classList.add('alert-danger');
+         if (taskType === 'chat') {
+             appendToChatHistory('ai', errorText);
+         }
+    } finally {
+        userQueryInput.disabled = false;
+        sendButton.disabled = false;
+        generateButton.disabled = false;
+        spinner.classList.add('d-none');
+        if (aiResponseArea.textContent || aiResponseArea.innerHTML) {
+            aiResponseArea.classList.remove('d-none'); 
+        }        
+    }
+}
+</script>
+{% endblock %} 
