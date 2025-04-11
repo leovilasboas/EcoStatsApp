@@ -155,12 +155,69 @@ def auto_select_glm_family(dependent_variable_data):
     return sm.families.Gaussian(), "Gaussian (Default)"
 
 def select_model_aic(df, dependent_var, candidate_predictors, model_type, **kwargs):
-    # Restore original logic here if needed (this is simplified)
-    # This simplified version just fits the full model
-    formula = f"{dependent_var} ~ {' + '.join(candidate_predictors)}"
-    model_func_map = {'lm': smf.ols, 'glm': smf.glm, 'lmm': smf.mixedlm, 'glmm': smf.gee}
-    model = model_func_map[model_type](formula, data=df, **kwargs).fit()
-    return model, formula, "AIC selection not performed (simplified version)."
+    """
+    Perform model selection using AIC with backward elimination.
+    Starts with all predictors and iteratively removes the one that improves AIC the most.
+    Stops when AIC cannot be further improved by removing predictors.
+    """
+    app.logger.info(f"Starting AIC model selection with {len(candidate_predictors)} predictors")
+    
+    if len(candidate_predictors) <= 1:
+        formula = f"{dependent_var} ~ {' + '.join(candidate_predictors)}"
+        model_func_map = {'lm': smf.ols, 'glm': smf.glm, 'lmm': smf.mixedlm, 'glmm': smf.gee}
+        model = model_func_map[model_type](formula, data=df, **kwargs).fit()
+        return model, formula, "AIC selection not performed (need at least 2 predictors)."
+    
+    # Start with the full model
+    best_predictors = candidate_predictors.copy()
+    model_func = {'lm': smf.ols, 'glm': smf.glm, 'lmm': smf.mixedlm, 'glmm': smf.gee}[model_type]
+    
+    best_formula = f"{dependent_var} ~ {' + '.join(best_predictors)}"
+    best_model = model_func(best_formula, data=df, **kwargs).fit()
+    best_aic = best_model.aic
+    
+    app.logger.info(f"Initial model AIC: {best_aic:.2f} with {len(best_predictors)} predictors")
+    elimination_steps = [f"Starting AIC: {best_aic:.2f} with predictors: {', '.join(best_predictors)}"]
+    
+    improvement = True
+    while improvement and len(best_predictors) > 1:
+        improvement = False
+        best_removed = None
+        
+        # Try removing each predictor
+        for predictor in best_predictors:
+            # Create a model without this predictor
+            current_predictors = [p for p in best_predictors if p != predictor]
+            current_formula = f"{dependent_var} ~ {' + '.join(current_predictors)}"
+            
+            try:
+                current_model = model_func(current_formula, data=df, **kwargs).fit()
+                current_aic = current_model.aic
+                
+                app.logger.debug(f"Without '{predictor}': AIC = {current_aic:.2f}")
+                
+                # If removing this predictor improves AIC (lower is better)
+                if current_aic < best_aic:
+                    best_aic = current_aic
+                    best_removed = predictor
+                    best_model = current_model
+                    best_formula = current_formula
+                    improvement = True
+            except Exception as e:
+                app.logger.warning(f"Error fitting model without '{predictor}': {e}")
+                continue
+        
+        # If we found a predictor to remove
+        if best_removed:
+            best_predictors.remove(best_removed)
+            elimination_steps.append(f"Removed '{best_removed}': AIC improved to {best_aic:.2f}")
+            app.logger.info(f"Removed '{best_removed}': AIC improved to {best_aic:.2f}")
+    
+    # Return the final model with the elimination steps
+    final_predictors = ', '.join(best_predictors) if best_predictors else 'Intercept only'
+    log_message = f"Final model after AIC selection: {final_predictors}\n" + "\n".join(elimination_steps)
+    
+    return best_model, best_formula, log_message
 
 def generate_effect_plots(model, df, dependent_var, predictors, unique_id):
     effect_plots_data = []
