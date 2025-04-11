@@ -390,8 +390,15 @@ def analyze(filename):
         columns = df.columns.tolist()
 
         if request.method == 'GET':
-            preview_html = df.head().to_html(classes=['table', 'table-sm', 'table-bordered', 'table-striped'], index=False)
-            return render_template('analyze.html', filename=filename, columns=columns, preview_html=preview_html)
+            # Use the original df (columns already cleaned) and the existing columns list
+            preview_html = df.head().to_html(classes='table table-striped table-sm', index=False, border=0)
+            
+            return render_template(
+                'analyze.html',
+                filename=filename,
+                columns=columns, # Use the columns list defined above
+                preview_html=preview_html
+            )
         
         elif request.method == 'POST':
             # --- Process form data --- 
@@ -604,6 +611,25 @@ def ask_ai():
     if ai_response.startswith("Error") or ai_response.startswith("AI interpretation disabled"):
         return jsonify({"error": ai_response}), 500
     return jsonify({"response": ai_response})
+
+@app.route('/configure/<filename>')
+def configure_analysis(filename):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        flash(f'File {filename} not found.', 'danger')
+        return redirect(url_for('index'))
+
+    try:
+        df = load_data(file_path)
+        # Clean column names for easier use
+        df.columns = [clean_column_name(col) for col in df.columns]
+        columns = df.columns.tolist()
+        preview_html = df.head().to_html(classes='table table-sm table-hover', border=0)
+        return render_template('analyze.html', filename=filename, columns=columns, preview_html=preview_html)
+    except Exception as e:
+        flash(f'Error reading or processing file {filename}: {e}', 'danger')
+        app.logger.error(f"Error configuring analysis for {filename}: {e}", exc_info=True)
+        return redirect(url_for('index'))
 
 # Removed database init command, user model, auth routes, forms, etc.
 

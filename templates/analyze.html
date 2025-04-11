@@ -1,338 +1,245 @@
 {% extends 'base.html' %}
-{% block title %}Configure Analysis for {{ filename }} - {{ super() }}{% endblock %}
+{% block title %}Configure Analysis - {{ filename }}{% endblock %}
 
 {% block head %}
 <style>
-    /* Hide elements initially */
-    .hidden {
-        display: none;
+    /* Styles for the checkbox list */
+    #independent-vars-list {
+        /* max-height controlled inline or via JS if needed */
+        /* border, padding, etc. applied via Bootstrap classes */
     }
+    .form-check {
+        padding-left: 1.5em; /* Align checkboxes */
+        margin-bottom: 0.5rem; /* Space between items */
+    }
+    .form-check-input {
+         margin-left: -1.5em; /* Position checkbox correctly */
+         margin-top: 0.25em;
+    }
+    .form-check-label {
+        margin-left: 0.5em; /* Space between checkbox and label */
+    }
+    /* Style for hidden items if needed (might not be necessary if we just don't render them) */
+    /* .form-check.hidden-var { display: none; } */
+    #aic_checkbox_div { display: block; }
 </style>
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4"><i class="bi bi-sliders me-2"></i>Configure Analysis: <span class="fw-normal">{{ filename }}</span></h1>
+<div class="container my-4">
+    <h2 class="mb-4 fw-light"><i class="bi bi-sliders me-2"></i>Configure Analysis: {{ filename }}</h2>
 
-<!-- Data Preview Section (Collapsible) -->
-{% if preview_html %}
-<div class="mb-4">
-    <h2 class="h5">
-        <button class="btn btn-link text-decoration-none text-start p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePreview" aria-expanded="false" aria-controls="collapsePreview">
-            <i class="bi bi-eye-fill me-2"></i>Data Preview (First 5 Rows)
-        </button>
-    </h2>
-    <div id="collapsePreview" class="collapse">
-        <div class="card card-body shadow-sm">
-            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
-                {{ preview_html | safe }}
+    <!-- Data Preview Section (Collapsible) -->
+    <div class="accordion mb-4" id="accordionPreview">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingPreview">
+                <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePreview" aria-expanded="false" aria-controls="collapsePreview">
+                     <h5 class="mb-0 fw-normal"><i class="bi bi-eye me-2"></i>Data Preview (First 5 Rows)</h5>
+                </button>
+            </h2>
+            <div id="collapsePreview" class="accordion-collapse collapse" aria-labelledby="headingPreview" data-bs-parent="#accordionPreview">
+                <div class="accordion-body">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        {{ preview_html | safe }}
+                    </div>
+                    <small class="text-muted mt-2 d-block">Verify that data and column names were read correctly. Cleaned names used for modeling: {{ columns | join(', ') }}</small>
+                </div>
             </div>
-             <small class="text-muted mt-2">Verify that data and column names were read correctly. Cleaned names used for modeling: {{ columns | join(', ') }}</small>
+        </div>
+    </div>
+    <!-- End Data Preview -->
+
+    <!-- Model Configuration Form -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0 fw-normal"><i class="bi bi-gear me-2"></i>Model Configuration</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('analyze', filename=filename) }}" id="analysis-form">
+                <div class="row g-3 mb-4">
+                    <!-- Dependent Variable -->
+                    <div class="col-md-6">
+                        <label for="dependent_var" class="form-label">Dependent Variable (Y): <span class="text-danger">*</span></label>
+                        <select class="form-select choices-select" id="dependent_var" name="dependent_var" required>
+                            <option value="">Select Dependent Variable</option>
+                            {% for column in columns %}
+                                <option value="{{ column }}">{{ column }}</option>
+                            {% endfor %}
+                        </select>
+                         <label for="dep_var_description" class="form-label mt-2">Describe Dependent Variable:</label>
+                        <input type="text" class="form-control form-control-sm" id="dep_var_description" name="dep_var_description" placeholder="e.g., Body mass in grams">
+                    </div>
+                    <!-- Model Type -->
+                    <div class="col-md-6">
+                        <label for="model_type" class="form-label">Model Type: <span class="text-danger">*</span></label>
+                        <select class="form-select choices-select" id="model_type" name="model_type" required>
+                            <option value="lm" selected>Linear Model (LM)</option>
+                            <option value="glm">Generalized Linear Model (GLM)</option>
+                            <option value="lmm">Linear Mixed Model (LMM)</option>
+                            <option value="glmm">Generalized Estimating Equations (GEE/GLMM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                 <!-- GLM Specific Options (Initially Hidden) -->
+                <div id="glm_options" class="mb-3 border p-3 rounded bg-light" style="display: none;">
+                    <h6>GLM Options</h6>
+                     <label for="glm_family" class="form-label">Family:</label>
+                    <select class="form-select form-select-sm choices-select" id="glm_family" name="glm_family">
+                        <option value="auto" selected>Auto-Detect</option>
+                        <option value="gaussian">Gaussian (Normal)</option>
+                        <option value="binomial">Binomial (Logit)</option>
+                        <option value="poisson">Poisson (Log)</option>
+                        <option value="gamma">Gamma (Inverse)</option>
+                        <option value="inverse_gaussian">Inverse Gaussian (1/mu^2)</option>
+                        <!-- Add other families as needed -->
+                    </select>
+                </div>
+
+                <!-- LMM Specific Options (Initially Hidden) -->
+                <div id="lmm_options" class="mb-3 border p-3 rounded bg-light" style="display: none;">
+                     <h6>LMM Options</h6>
+                    <label for="grouping_vars" class="form-label" id="grouping_vars_label">Grouping Variable(s) (Random Effects):</label>
+                    <select class="form-select choices-multiple" id="grouping_vars" name="grouping_vars" multiple>
+                         {% for column in columns %}
+                            <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Select the column(s) identifying groups/clusters.</small>
+                </div>
+
+                 <!-- GEE Specific Options (Initially Hidden) -->
+                <div id="glmm_options" class="mb-3 border p-3 rounded bg-light" style="display: none;">
+                    <h6>GEE (GLMM) Options</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="gee_family" class="form-label">Family:</label>
+                            <select class="form-select form-select-sm choices-select" id="gee_family" name="gee_family">
+                                <option value="auto" selected>Auto-Detect</option>
+                                <option value="gaussian">Gaussian</option>
+                                <option value="binomial">Binomial</option>
+                                <option value="poisson">Poisson</option>
+                                <option value="gamma">Gamma</option>
+                                <option value="inverse_gaussian">Inverse Gaussian</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="group_id_var" class="form-label" id="group_id_var_label">Group ID Variable:</label>
+                            <select class="form-select form-select-sm choices-select" id="group_id_var" name="group_id_var">
+                                <option value="">Select Group ID</option>
+                                {% for column in columns %}
+                                    <option value="{{ column }}">{{ column }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Column identifying independent groups.</small>
+                        </div>
+                        <div class="col-md-4">
+                             <label for="cov_struct" class="form-label">Covariance Structure:</label>
+                            <select class="form-select form-select-sm choices-select" id="cov_struct" name="cov_struct">
+                                <option value="exchangeable" selected>Exchangeable</option>
+                                <option value="independence">Independence</option>
+                                <option value="autoregressive">Autoregressive (AR-1)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Independent Variables (Checkbox List - Rendered by Server) -->
+                <div class="mb-3">
+                    <label class="form-label">Independent Variable(s) (X): <span class="text-danger">*</span></label>
+                    <div id="independent-vars-list" class="border rounded p-2 form-control" style="max-height: 250px; overflow-y: auto; height: auto;">
+                        {# Checkboxes generated by Jinja loop directly #}
+                        {% if columns %}
+                            {% for column in columns %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="independent_vars" value="{{ column }}" id="indep_var_{{ loop.index }}">
+                                    <label class="form-check-label" for="indep_var_{{ loop.index }}">
+                                        {{ column }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-danger">Error: Column list not available.</p>
+                        {% endif %}
+                    </div>
+                     {# Keep hidden input for basic HTML5 required validation, though JS validation is removed #}
+                     <input type="hidden" id="independent_vars_hidden_required" name="independent_vars_placeholder" required>
+                     <div id="independent_vars_error" class="invalid-feedback" style="display: none;">Please select at least one independent variable.</div>
+                    <small class="text-muted">Check the variables to include as predictors. (Note: Dependent variable is NOT automatically filtered in this view).</small>
+                </div>
+
+                <!-- Simple Textarea for Predictor Descriptions -->
+                <div class="mb-3">
+                    <label for="predictors_description_text" class="form-label">Describe Predictors (Optional):</label>
+                    <textarea class="form-control form-control-sm" id="predictors_description_text" name="predictors_description_text" rows="3" placeholder="Describe each selected predictor, e.g.,&#10;MASS: Body mass (g)&#10;SOIL: Soil type (categorical)"></textarea>
+                    <small class="text-muted">Provide units or context for selected predictors (one per line helps).</small>
+                </div>
+
+                <!-- Model Selection Option -->
+                {# JS will control disabled state #}
+                <div class="form-check mb-3" id="aic_checkbox_div">
+                    <input class="form-check-input" type="checkbox" value="on" id="perform_aic" name="perform_aic">
+                    <label class="form-check-label" for="perform_aic">
+                        Perform Model Selection using AIC/QIC (Backward Elimination)
+                    </label>
+                     <small class="text-muted d-block">Requires >1 predictor selected.</small>
+                 </div>
+
+                <!-- AI Interpretation API Key (Optional) -->
+                 <div class="mb-3">
+                    <label for="hf_api_token" class="form-label">Hugging Face API Token (Optional):</label>
+                    <input type="password" class="form-control form-control-sm" id="hf_api_token" name="hf_api_token" placeholder="Enter token for AI interpretation">
+                    <small class="text-muted">Needed only if you want AI-generated interpretation.</small>
+                 </div>
+
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-play-circle me-2"></i>Run Analysis</button>
+            </form>
         </div>
     </div>
 </div>
-{% endif %}
-<!-- End Data Preview Section -->
-
-<form id="analysis-form" action="{{ url_for('analyze', filename=filename) }}" method="post">
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header"><i class="bi bi-gear-fill me-2"></i>Model Configuration</div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <!-- Dependent Variable -->
-                <div class="col-md-6">
-                    <label for="dependent_var" class="form-label"><i class="bi bi-bullseye me-1"></i>Dependent Variable (Y):</label>
-                    <select id="dependent_var" name="dependent_var" class="form-select" required>
-                        <option value="" disabled selected>Select Variable</option>
-                        {% for col in columns %}
-                        <option value="{{ col }}">{{ col }}</option>
-                        {% endfor %}
-                    </select>
-                    <label for="dep_var_description" class="form-label mt-2"><i class="bi bi-card-text me-1"></i>Describe Dependent Variable:</label>
-                    <input type="text" id="dep_var_description" name="dep_var_description" class="form-control form-control-sm" placeholder="e.g., Body mass in grams">
-                </div>
-
-                <!-- Model Type -->
-                <div class="col-md-6">
-                    <label for="model_type" class="form-label"><i class="bi bi-diagram-3 me-1"></i>Model Type:</label>
-                    <select id="model_type" name="model_type" class="form-select" required onchange="toggleModelOptions()">
-                        <option value="" disabled selected>Select Model</option>
-                        <option value="lm">Linear Model (LM)</option>
-                        <option value="glm">Generalized Linear Model (GLM)</option>
-                        <option value="lmm">Linear Mixed Model (LMM)</option>
-                        <option value="glmm">Generalized Linear Mixed Model (GLMM/GEE)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Independent Variables -->
-            <div class="mb-3">
-                <label for="independent_vars" class="form-label"><i class="bi bi-list-task me-1"></i>Independent Variable(s) (X):</label>
-                <select id="independent_vars" name="independent_vars" class="form-select" multiple required size="8">
-                    {% for col in columns %}
-                    <option value="{{ col }}">{{ col }}</option>
-                    {% endfor %}
-                </select>
-                <div id="indep_var_descriptions" class="mt-2">
-                    <!-- Description fields will be added here by JS -->
-                </div>
-                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple variables. Describe selected variables below.</small>
-            </div>
-
-            <!-- AIC Selection Checkbox -->
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" name="perform_aic" id="perform_aic" value="on">
-                <label class="form-check-label" for="perform_aic">
-                    <i class="bi bi-calculator me-1"></i> Perform Model Selection using AIC/QIC (Backward Elimination)
-                </label>
-                 <small class="form-text text-muted d-block">Requires >1 predictor. Note: QIC selection for GEE is not yet fully implemented (returns full model).</small>
-            </div>
-
-            <!-- GLM Specific Options (Hidden by default) -->
-            <div id="glm_options" class="hidden model-options-group">
-                <legend><i class="bi bi-sliders2 me-2"></i>GLM Options</legend>
-                <div class="mb-3">
-                    <label for="glm_family" class="form-label">Family:</label>
-                    <select id="glm_family" name="glm_family" class="form-select">
-                        <option value="auto" selected>Auto-Select (Default)</option>
-                        <option value="gaussian">Gaussian</option>
-                        <option value="binomial">Binomial</option>
-                        <option value="poisson">Poisson</option>
-                        <option value="gamma">Gamma</option>
-                        <option value="inverse_gaussian">Inverse Gaussian</option>
-                    </select>
-                    <small class="form-text text-muted">Select the distribution family for GLM. 'Auto-Select' uses heuristics based on the dependent variable.</small>
-                </div>
-            </div>
-
-            <!-- LMM/GEE Specific Options (Hidden by default) -->
-            <div id="lmm_options" class="hidden model-options-group">
-                <legend><i class="bi bi-intersect me-2"></i>LMM / GEE Options</legend>
-                <div class="mb-3">
-                    <label for="grouping_vars" class="form-label">Grouping Variable(s):</label>
-                    <select id="grouping_vars" name="grouping_vars" class="form-select" multiple size="3">
-                        {# Options populated by JS #}
-                    </select>
-                     <small class="form-text text-muted">Required for LMM/GEE. Currently uses only the first selected variable.</small>
-                </div>
-                 <!-- Family Selection for GEE -->
-                 <div class="mb-3">
-                    <label for="gee_family" class="form-label">Family (for GEE):</label>
-                    <select id="gee_family" name="gee_family" class="form-select">
-                        <option value="auto" selected>Auto-Select (Default)</option>
-                        <option value="gaussian">Gaussian</option>
-                        <option value="binomial">Binomial</option>
-                        <option value="poisson">Poisson</option>
-                        <option value="gamma">Gamma</option>
-                        <option value="inverse_gaussian">Inverse Gaussian</option>
-                    </select>
-                    <small class="form-text text-muted">Select the distribution family for GEE. 'Auto-Select' uses heuristics.</small>
-                </div>
-                 <!-- GEE Covariance Structure -->
-                 <div class="mb-3">
-                    <label for="gee_cov_struct" class="form-label">Covariance Structure (for GEE):</label>
-                    <select id="gee_cov_struct" name="gee_cov_struct" class="form-select">
-                        <option value="exchangeable" selected>Exchangeable (Default)</option>
-                        <option value="independence">Independence</option>
-                        <option value="autoregressive">Autoregressive (AR-1)</option>
-                    </select>
-                    <small class="form-text text-muted">Select the working correlation structure for GEE.</small>
-                </div>
-                <!-- Random Effects for LMM -->
-                <div class="mb-3">
-                    <label for="random_effects_formula" class="form-label">Random Effects Formula Structure (LMM Only):</label>
-                    <input type="text" id="random_effects_formula" name="random_effects_formula" class="form-control" placeholder="e.g., 1 + X | Group (omit ~)">
-                     <small class="form-text text-muted">Optional for LMM. Defines random intercepts/slopes. Leave blank for random intercepts only.</small>
-                </div>
-                <div class="alert alert-info d-flex align-items-center" role="alert">
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                    <div>For GEE (selected as GLMM), Covariance Structure defaults to Exchangeable.</div>
-                </div>
-            </div>
-
-            <!-- API Token Input -->
-            <div class="mt-4 pt-3 border-top">
-                 <label for="hf_api_token" class="form-label"><i class="bi bi-key-fill me-1"></i>Hugging Face API Token (Optional):</label>
-                 <input type="password" id="hf_api_token" name="hf_api_token" class="form-control" placeholder="Enter your read token (hf_...)">
-                 <small class="form-text text-muted">Needed for AI interpretation. Your token will be sent with the analysis request. Get a token from Hugging Face settings. Leave blank to disable AI interpretation.</small>
-            </div>
-
-        </div>
-    </div>
-
-    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
-        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2"><i class="bi bi-x-circle me-1"></i>Cancel</a>
-        <button type="submit" class="btn btn-primary"><i class="bi bi-play-circle-fill me-2"></i>Run Analysis</button>
-    </div>
-</form>
-
 {% endblock %}
 
-{% block scripts %}
-{{ super() }}
+{% block extra_js %}
 <script>
-    // --- Dynamic Variable Description Input --- 
-    const indepVarSelect = document.getElementById('independent_vars');
-    const descriptionContainer = document.getElementById('indep_var_descriptions');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM Loaded. Initializing AIC checkbox script...");
 
-    function addDescriptionInput(variableName) {
-        const div = document.createElement('div');
-        div.classList.add('input-group', 'input-group-sm', 'mb-1');
-        div.id = `desc-group-${variableName}`;
-        div.innerHTML = `
-            <span class="input-group-text"><i class="bi bi-pencil me-2"></i>${variableName}:</span>
-            <input type="text" name="desc_${variableName}" class="form-control" placeholder="Describe (e.g., Treatment type)">
-        `;
-        descriptionContainer.appendChild(div);
+    const independentVarsListDiv = document.getElementById('independent-vars-list');
+    const aicCheckbox = document.getElementById('perform_aic');
+    // Removed references to varDescContainer and dynamicInputsContainer
+
+    if (!independentVarsListDiv || !aicCheckbox) { // Simplified check
+        console.error("CRITICAL: Could not find essential elements ('independent-vars-list' or 'perform_aic'). Script aborted.");
+        return;
     }
 
-    function removeDescriptionInput(variableName) {
-        const element = document.getElementById(`desc-group-${variableName}`);
-        if (element) {
-            element.remove();
+    // Function to update AIC checkbox state based on selection
+    function updateAICCheckboxState() {
+        const checkedBoxes = independentVarsListDiv.querySelectorAll('input[type="checkbox"][name="independent_vars"]:checked');
+        const checkedCount = checkedBoxes.length;
+
+        console.log(`Updating AIC checkbox state. ${checkedCount} predictors selected.`);
+
+        aicCheckbox.disabled = checkedCount <= 1;
+        if (aicCheckbox.disabled) {
+            aicCheckbox.checked = false; // Uncheck if disabled
         }
+        console.log(`AIC Checkbox disabled: ${aicCheckbox.disabled}`);
     }
 
-    // Event listener for Choices.js changes (using its custom event)
-    indepVarSelect.addEventListener('change', function(event) {
-        // Clear existing descriptions
-        descriptionContainer.innerHTML = '';
-        // Get selected values (might need adjustment based on Choices.js version)
-        const selectedValues = Array.from(indepVarSelect.selectedOptions).map(opt => opt.value);
-        selectedValues.forEach(value => {
-            addDescriptionInput(value);
-        });
-    }, false);
-    // --- End Dynamic Variable Description Input ---
-
-    function toggleModelOptions() {
-        const modelType = document.getElementById('model_type').value;
-        const glmOptions = document.getElementById('glm_options');
-        const lmmOptions = document.getElementById('lmm_options');
-
-        // Hide all specific options first
-        glmOptions.classList.add('hidden');
-        lmmOptions.classList.add('hidden');
-
-        // Ensure grouping/random effects are not required if model type changes away from LMM/GEE
-        const groupingSelect = document.getElementById('grouping_vars');
-        const randomFormulaInput = document.getElementById('random_effects_formula');
-
-        if (modelType === 'glm') {
-            glmOptions.classList.remove('hidden');
-            groupingSelect.required = false;
-        } else if (modelType === 'lmm' || modelType === 'glmm') {
-            lmmOptions.classList.remove('hidden');
-            groupingSelect.required = true;
-        } else {
-            // Neither GLM nor LMM/GEE
-            groupingSelect.required = false;
+    // Event Listener for checkbox changes
+    independentVarsListDiv.addEventListener('change', (event) => {
+        if (event.target.type === 'checkbox' && event.target.name === 'independent_vars') {
+            console.log(`Checkbox change detected for: ${event.target.value}`);
+            updateAICCheckboxState(); // Only update AIC state now
         }
-    }
-
-    // Initial call in case the page is loaded with a model type already selected (e.g., validation error)
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleModelOptions();
-        
-        const depVarSelect = document.getElementById('dependent_var');
-        const indepVarSelectElement = document.getElementById('independent_vars');
-        const groupingVarsSelectElement = document.getElementById('grouping_vars');
-        
-        // --- Store original options for independent vars *before* initializing Choices.js ---
-        const originalIndepVarOptions = Array.from(indepVarSelectElement.options).map(opt => ({
-            value: opt.value,
-            label: opt.label
-        }));
-        
-        // --- Initialize Choices.js --- 
-        let choicesIndep = null; 
-        let choicesGroup = null;
-        
-        if (indepVarSelectElement) {
-            choicesIndep = new Choices(indepVarSelectElement, {
-                 removeItemButton: true,
-                 allowHTML: false,
-                 shouldSort: false, // Keep original order
-                 placeholder: true,
-                 placeholderValue: 'Select predictor(s)...',
-            });
-        }
-        if (groupingVarsSelectElement) {
-             choicesGroup = new Choices(groupingVarsSelectElement, {
-                 removeItemButton: true,
-                 allowHTML: false,
-                 shouldSort: false,
-                 placeholder: true,
-                 placeholderValue: 'Select group variable(s)...',
-                 maxItemCount: 1, // Limit to one for now based on current backend logic
-            });
-        }
-
-        // --- Function to update Independent Variable Choices --- 
-        function updateIndependentChoices() {
-            if (!choicesIndep || !depVarSelect) return; // Exit if elements don't exist
-
-            const selectedDepVar = depVarSelect.value;
-            
-            // --- New Step: Remove selected dependent variable from independent choices --- 
-            const currentSelectedIndepValues = choicesIndep.getValue(true); // Get values of currently selected items
-            if (currentSelectedIndepValues.includes(selectedDepVar)) {
-                console.log(`Removing ${selectedDepVar} from selected independent vars.`); 
-                choicesIndep.removeItem(selectedDepVar);
-            }
-            // --- End New Step ---
-
-            // Filter original options, excluding the selected dependent variable
-            const availableOptions = originalIndepVarOptions.filter(opt => opt.value !== selectedDepVar);
-
-            // Use Choices.js API to set available choices, keeping current selection
-            choicesIndep.setChoices(availableOptions, 'value', 'label', true);
-        }
-
-         // --- Function to update Grouping Variable Choices --- 
-        function updateGroupingChoices() {
-             if (!choicesGroup || !choicesIndep || !depVarSelect) return; // Exit if elements don't exist
-
-             const selectedDepVar = depVarSelect.value;
-             const selectedIndepVars = choicesIndep.getValue(true);
-             
-             // Filter original options: exclude dependent and selected independent variables
-             const availableGroupOptions = originalIndepVarOptions.filter(opt => 
-                opt.value !== selectedDepVar && !selectedIndepVars.includes(opt.value)
-             );
-             
-             choicesGroup.setChoices(availableGroupOptions, 'value', 'label', true);
-        }
-
-        // --- Event Listeners --- 
-        if (depVarSelect) {
-            depVarSelect.addEventListener('change', function() {
-                updateIndependentChoices();
-                updateGroupingChoices();
-            });
-        }
-        
-        if (choicesIndep) {
-            // Listen for changes in independent variables to update grouping choices
-            indepVarSelectElement.addEventListener('change', function() {
-                 updateGroupingChoices(); 
-                 
-                 // Also update dynamic description fields
-                 descriptionContainer.innerHTML = ''; // Clear existing
-                 const selectedValues = choicesIndep.getValue(true);
-                 selectedValues.forEach(value => {
-                    addDescriptionInput(value);
-                 });
-            });
-        }
-
-        // Initial population
-        updateIndependentChoices();
-        updateGroupingChoices();
-        // Populate initial description fields based on pre-selected values (if any)
-        if (choicesIndep) {
-             choicesIndep.getValue(true).forEach(value => addDescriptionInput(value));
-        }
-
     });
+
+    // Initial call to set the AIC state when the page loads
+    console.log("Running initial AIC checkbox update...");
+    updateAICCheckboxState();
+    console.log("AIC checkbox script initialization complete.");
+
+}); // End DOMContentLoaded
 </script>
-{% endblock %} 
+{% endblock %}
