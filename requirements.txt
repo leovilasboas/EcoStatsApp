@@ -1,11 +1,5 @@
 Flask
 Flask-Session
-Flask-SQLAlchemy
-Flask-Login
-Flask-WTF
-Werkzeug
-psycopg2-binary
-python-dotenv
 pandas
 statsmodels
 scipy
@@ -13,6 +7,5 @@ patsy
 matplotlib
 seaborn
 openpyxl
-# rpy2 # Removed due to integration issues 
-requests # For calling external APIs 
-gunicorn # Added WSGI server for production 
+requests # Kept for potential external API calls
+gunicorn # WSGI server for production
