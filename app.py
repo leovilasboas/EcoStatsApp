@@ -1271,13 +1271,13 @@ Interpretation:"""
 @login_required # Protect download
 def download_plot(unique_id, plot_type, format):
     # TODO: Add check if the user is allowed to download this plot (based on original file owner?)
-    pass # Ensure at least pass is present and indented
+    pass # Ensure this is present and indented
 
 @app.route('/ask_ai', methods=['POST'])
 @login_required # Protect AI route
 def ask_ai():
     # TODO: Ensure context passed belongs to the current user if necessary
-    pass # Ensure at least pass is present and indented
+    pass # Add pass to ensure an indented block
 
 # === Database Initialization Command ===
 @app.cli.command('init-db')
@@ -1405,14 +1405,14 @@ def upload_file():
         filename = file.filename # Needs secure filename and user association
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         try:
-        file.save(filepath)
+            file.save(filepath) # Indent this
             # TODO: Add record to DB associating filename/path with current_user.id
-            flash(f'File "{filename}" uploaded successfully.')
+            flash(f'File "{filename}" uploaded successfully.') # Indent this
             # Redirect to analyze, passing user context implicitly via login
-            return redirect(url_for('analyze', filename=filename))
+            return redirect(url_for('analyze', filename=filename)) # Indent this
         except Exception as e:
-            flash(f'An error occurred while saving the file: {e}')
-            return redirect(url_for('index'))
+            flash(f'An error occurred while saving the file: {e}') # Indent this
+            return redirect(url_for('index')) # Indent this
     return redirect(url_for('index'))
 
 @app.route('/analyze/<filename>', methods=['GET', 'POST'])
