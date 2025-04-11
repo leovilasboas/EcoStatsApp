@@ -7,6 +7,7 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import os
 import patsy
+import traceback
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -444,12 +445,12 @@ def analyze(filename):
                     final_predictors = list(independent_vars)
                 elif model_type == 'glm':
                     # --- GLM Family Selection ---
-                    family_choice = request.form.get('glm_family', 'auto')
+                    family_selection_mode = request.form.get('family_selection_mode', 'auto')
                     selected_family_obj = None
                     selected_family_name = ""
-                    family_source = ""
-
-                    if family_choice == 'auto':
+                    family_source = ""  # Initialize family_source variable
+                    
+                    if family_selection_mode == 'auto':
                         try:
                             selected_family_obj, selected_family_name = auto_select_glm_family(df[dependent_var])
                             family_source = "(Auto-Selected)"
@@ -459,23 +460,26 @@ def analyze(filename):
                             app.logger.warning(f"Auto-select family failed: {e}", exc_info=True)
                             selected_family_obj = sm.families.Gaussian()
                             selected_family_name = "Gaussian"
-                            family_source = "(Defaulted due to Error)"
+                            family_source = "(Default due to Error)"
                     else:
+                        # Manual selection
+                        family_choice = request.form.get('glm_family', 'gaussian')
                         try:
                             selected_family_obj = get_family_object(family_choice)
                             selected_family_name = family_choice.capitalize()
                             family_source = "(User-Selected)"
+                            flash(f"Using manually selected family: {selected_family_name}", "info")
                         except Exception as e:
-                            flash(f"Error getting specified family '{family_choice}': {e}. Defaulting to Gaussian.", "warning")
-                            app.logger.warning(f"Get family '{family_choice}' failed: {e}", exc_info=True)
+                            flash(f"Error with selected family: {e}. Defaulting to Gaussian.", "warning")
+                            app.logger.warning(f"Family selection failed: {e}", exc_info=True)
                             selected_family_obj = sm.families.Gaussian()
                             selected_family_name = "Gaussian"
-                            family_source = "(Defaulted due to Error)"
+                            family_source = "(Default due to Error)"
                     
                     if selected_family_obj is None: # Final fallback
-                         selected_family_obj = sm.families.Gaussian()
-                         selected_family_name = "Gaussian"
-                         family_source = "(Defaulted)"
+                        selected_family_obj = sm.families.Gaussian()
+                        selected_family_name = "Gaussian"
+                        family_source = "(Default)"
 
                     model_kwargs['family'] = selected_family_obj
                     model_description_base = f"Generalized Linear Model (GLM) - Family: {selected_family_name} {family_source}"

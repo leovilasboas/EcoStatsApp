@@ -5,8 +5,9 @@
 <style>
     /* Styles for the checkbox list */
     #independent-vars-list {
-        /* max-height controlled inline or via JS if needed */
-        /* border, padding, etc. applied via Bootstrap classes */
+        max-height: 250px;
+        overflow-y: auto;
+        padding: 0.5rem;
     }
     .form-check {
         padding-left: 1.5em; /* Align checkboxes */
@@ -19,13 +20,23 @@
     .form-check-label {
         margin-left: 0.5em; /* Space between checkbox and label */
     }
-    /* Style for hidden items if needed (might not be necessary if we just don't render them) */
-    /* .form-check.hidden-var { display: none; } */
     #aic_checkbox_div { display: block; }
     
-    /* Class to hide model-specific options */
-    .model-options-hidden {
-        display: none !important;
+    /* Model-specific options styling */
+    .model-specific-options > div {
+        display: none;
+    }
+    
+    /* GLM family selection styling */
+    #manual_family_options {
+        border-left: 3px solid #e9ecef;
+        padding-left: 1rem;
+    }
+    
+    .family-description {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
     }
 </style>
 {% endblock %}
@@ -61,105 +72,115 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('analyze', filename=filename) }}" id="analysis-form">
+                <!-- Basic configuration options -->                
                 <div class="row g-3 mb-4">
-                    <!-- Dependent Variable -->
                     <div class="col-md-6">
-                        <label for="dependent_var" class="form-label">Dependent Variable (Y): <span class="text-danger">*</span></label>
-                        <select class="form-select choices-select" id="dependent_var" name="dependent_var" required>
-                            <option value="">Select Dependent Variable</option>
+                        <label for="dependent_var" class="form-label">Dependent Variable (Y):<span class="text-danger">*</span></label>
+                        <select class="form-select" id="dependent_var" name="dependent_var" required>
+                            <option value="" selected disabled>Select Dependent Variable</option>
                             {% for column in columns %}
-                                <option value="{{ column }}">{{ column }}</option>
+                            <option value="{{ column }}">{{ column }}</option>
                             {% endfor %}
                         </select>
-                         <label for="dep_var_description" class="form-label mt-2">Describe Dependent Variable:</label>
+                        <label for="dep_var_description" class="form-label mt-2">Describe Dependent Variable:</label>
                         <input type="text" class="form-control form-control-sm" id="dep_var_description" name="dep_var_description" placeholder="e.g., Body mass in grams">
                     </div>
-                    <!-- Model Type -->
                     <div class="col-md-6">
-                        <label for="model_type" class="form-label">Model Type: <span class="text-danger">*</span></label>
-                        <select class="form-select choices-select" id="model_type" name="model_type" required>
-                            <option value="lm" selected>Linear Model (LM)</option>
+                        <label for="model_type" class="form-label">Model Type:<span class="text-danger">*</span></label>
+                        <select class="form-select" id="model_type" name="model_type" required onchange="toggleModelOptions()">
+                            <option value="lm">Linear Model (LM)</option>
                             <option value="glm">Generalized Linear Model (GLM)</option>
                             <option value="lmm">Linear Mixed Model (LMM)</option>
-                            <option value="glmm">Generalized Estimating Equations (GEE/GLMM)</option>
+                            <option value="glmm">Generalized Linear Mixed Model (GLMM)</option>
                         </select>
                     </div>
                 </div>
+                
+                <!-- GLM FAMILY OPTIONS -->
+                <div id="glm-family-section" class="model-options glm-options mb-4 border p-3 rounded bg-light">
+                    <h5 class="mb-3 text-primary"><i class="bi bi-distribute-vertical me-2"></i>GLM Distribution Family</h5>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="family_selection_mode" id="auto_family" value="auto" onclick="handleFamilySelection()" checked>
+                            <label class="form-check-label fw-bold" for="auto_family">
+                                <i class="bi bi-magic me-1"></i> Auto-Select Family based on data
+                            </label>
+                            <p class="text-muted small ms-4 mb-0">Automatically analyzes data to select the optimal distribution family.</p>
+                        </div>
+                        
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="radio" name="family_selection_mode" id="manual_family" value="manual" onclick="document.getElementById('manual-family-options').style.display='block'; document.getElementById('glm_family').disabled=false;">
+                            <label class="form-check-label fw-bold" for="manual_family">
+                                <i class="bi bi-sliders me-1"></i> Manual Selection
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="manual-family-options" class="ms-4 mt-3 border-start border-3 border-primary ps-3" style="display: none;">
+                        <label for="glm_family" class="form-label">Choose Distribution Family:</label>
+                        <select class="form-select" id="glm_family" name="glm_family" disabled>
+                            <option value="gaussian">Gaussian (Normal)</option>
+                            <option value="binomial">Binomial</option>
+                            <option value="poisson">Poisson</option>
+                            <option value="gamma">Gamma</option>
+                            <option value="inverse_gaussian">Inverse Gaussian</option>
+                        </select>
+                        
+                        <div class="card mt-3 bg-light">
+                            <div class="card-header bg-light">
+                                <i class="bi bi-info-circle me-1"></i>Distribution Family Guide
+                            </div>
+                            <div class="card-body">
+                                <ul class="mb-0 small">
+                                    <li><strong>Gaussian:</strong> Symmetric, continuous data (height, weight)</li>
+                                    <li><strong>Binomial:</strong> Binary/proportion data (0/1, success/failure)</li>
+                                    <li><strong>Poisson:</strong> Count data (occurrences, events)</li>
+                                    <li><strong>Gamma:</strong> Positive, right-skewed data (reaction times)</li>
+                                    <li><strong>Inverse Gaussian:</strong> Highly skewed positive data</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- LMM MODEL OPTIONS -->
+                <div id="lmm-options-section" class="model-options lmm-options mb-4 border p-3 rounded bg-light">
+                    <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>LMM Specific Options</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Grouping Variable(s) for Random Effects:<span class="text-danger">*</span></label>
+                        <select class="form-select" id="grouping_vars" name="grouping_vars" multiple>
+                            {% for column in columns %}
+                            <option value="{{ column }}">{{ column }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Select column(s) defining groups (e.g., Site, Individual).</small>
+                    </div>
+                </div>
+                
+                <!-- GLMM MODEL OPTIONS -->
+                <div id="glmm-options-section" class="model-options glmm-options mb-4 border p-3 rounded bg-light">
+                    <h5 class="mb-3"><i class="bi bi-diagram-3-fill me-2"></i>GLMM Specific Options</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Family:</label>
+                        <select class="form-select" id="glmm_family" name="glmm_family">
+                            <option value="gaussian">Gaussian (Default)</option>
+                            <option value="binomial">Binomial</option>
+                            <option value="poisson">Poisson</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grouping Variable(s) for Random Effects:<span class="text-danger">*</span></label>
+                        <select class="form-select" id="glmm_grouping_vars" name="glmm_grouping_vars" multiple>
+                            {% for column in columns %}
+                            <option value="{{ column }}">{{ column }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Select column(s) defining groups (e.g., Site, Individual).</small>
+                    </div>
+                </div>
 
-                 <!-- GLM, LMM, GEE Options ... -->
-                 <div id="glm_options" class="mb-3 border p-3 rounded bg-light model-options-hidden">
-                     <!-- GLM content -->
-                     <h6 class="mb-3"><i class="bi bi-distribute-vertical me-2"></i>GLM Specific Options</h6>
-                     <div class="row g-3">
-                         <div class="col-md-6">
-                            <label for="glm_family" class="form-label">Family:</label>
-                            <select class="form-select form-select-sm choices-select-glm" id="glm_family" name="glm_family">
-                                <option value="gaussian" selected>Gaussian (Default)</option>
-                                <option value="binomial">Binomial</option>
-                                <option value="poisson">Poisson</option>
-                                <option value="gamma">Gamma</option>
-                                <option value="inverse_gaussian">Inverse Gaussian</option>
-                            </select>
-                         </div>
-                         <div class="col-md-6 d-flex align-items-end">
-                             <div class="form-check">
-                                 <input class="form-check-input" type="checkbox" value="on" id="auto_select_family" name="auto_select_family" checked>
-                                 <label class="form-check-label" for="auto_select_family">
-                                     Auto-Select Family based on data
-                                 </label>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-                 <div id="lmm_options" class="mb-3 border p-3 rounded bg-light model-options-hidden">
-                      <!-- LMM content -->
-                      <h6 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>LMM Specific Options</h6>
-                      <div class="mb-3">
-                           <label for="grouping_vars" class="form-label">Grouping Variable(s) (for Random Effects): <span class="text-danger">*</span></label>
-                           <select class="form-select choices-multiple-lmm" id="grouping_vars" name="grouping_vars" multiple>
-                               {# Options populated by JS/Logic - Should be categorical columns #}
-                               {% for column in columns %}
-                                    {# Add logic later if needed to filter only categorical #}
-                                    <option value="{{ column }}">{{ column }}</option>
-                               {% endfor %}
-                           </select>
-                           <small class="text-muted">Select the column(s) defining groups (e.g., Site, Individual).</small>
-                      </div>
-                 </div>
-                 <div id="glmm_options" class="mb-3 border p-3 rounded bg-light model-options-hidden">
-                     <!-- GEE content -->
-                     <h6 class="mb-3"><i class="bi bi-boxes me-2"></i>GEE/GLMM Specific Options</h6>
-                      <div class="row g-3">
-                          <div class="col-md-6">
-                               <label for="gee_family" class="form-label">Family:</label>
-                               <select class="form-select form-select-sm choices-select-gee" id="gee_family" name="gee_family">
-                                   <option value="gaussian" selected>Gaussian (Default)</option>
-                                   <option value="binomial">Binomial</option>
-                                   <option value="poisson">Poisson</option>
-                                   <option value="gamma">Gamma</option>
-                                   <option value="inverse_gaussian">Inverse Gaussian</option>
-                               </select>
-                          </div>
-                           <div class="col-md-6">
-                                <label for="cov_struct" class="form-label">Covariance Structure:</label>
-                                <select class="form-select form-select-sm choices-select-gee" id="cov_struct" name="cov_struct">
-                                    <option value="independence" selected>Independence</option>
-                                    <option value="exchangeable">Exchangeable</option>
-                                    <option value="autoregressive">Autoregressive (AR1)</option>
-                                </select>
-                           </div>
-                      </div>
-                      <div class="mt-3">
-                          <label for="gee_grouping_var" class="form-label">Grouping Variable (Subject ID): <span class="text-danger">*</span></label>
-                          <select class="form-select form-select-sm choices-select-gee" id="gee_grouping_var" name="gee_grouping_var">
-                               <option value="">Select Grouping Variable</option>
-                               {% for column in columns %}
-                                   <option value="{{ column }}">{{ column }}</option>
-                               {% endfor %}
-                          </select>
-                           <small class="text-muted">Select the column identifying repeated measurements.</small>
-                      </div>
-                  </div>
+                </div>
 
                 <!-- Independent Variables (Checkbox List - Rendered by Server) -->
                 <div class="mb-3">
@@ -216,24 +237,254 @@
 </div>
 {% endblock %}
 
+{% block extra_styles %}
+<style>
+/* Model options visibility rules */
+.model-options { display: none; }
+
+/* When LM is selected */
+select#model_type[value="lm"] ~ .model-options.lm-options { display: block; }
+
+/* When GLM is selected */
+select#model_type[value="glm"] ~ .model-options.glm-options { display: block; }
+
+/* When LMM is selected */
+select#model_type[value="lmm"] ~ .model-options.lmm-options { display: block; }
+
+/* When GLMM is selected */
+select#model_type[value="glmm"] ~ .model-options.glmm-options { display: block; }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
+// Execute this code immediately when the page loads
+(function() {
+    // Get the model type dropdown
+    const modelTypeDropdown = document.getElementById('model_type');
+    
+    // Function to show relevant options based on model type
+    function updateModelOptions() {
+        // Get the currently selected model type
+        const selectedType = modelTypeDropdown.value;
+        console.log('Updating model options for:', selectedType);
+        
+        // Hide all model option sections
+        document.querySelectorAll('.model-options').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show the appropriate section based on model type
+        if (selectedType === 'glm') {
+            document.getElementById('glm-family-section').style.display = 'block';
+        } else if (selectedType === 'lmm') {
+            document.getElementById('lmm-options-section').style.display = 'block';
+        } else if (selectedType === 'glmm') {
+            document.getElementById('glmm-options-section').style.display = 'block';
+        }
+    }
+    
+    // Set up event listener for model type change
+    if (modelTypeDropdown) {
+        modelTypeDropdown.addEventListener('change', updateModelOptions);
+    }
+    
+    // Run once on page load to set initial state
+    updateModelOptions();
+})();
+
+// This function is not needed anymore as we're controlling display with CSS
+function toggleModelOptions() {
+    // Our CSS rules handle this now - just trigger the manual family selection check
+    handleFamilySelection();
+    console.log('Updated model type and refreshed family selection state');
+}
+
+function handleFamilySelection() {
+    const isManual = document.getElementById('manual_family').checked;
+    const manualOptions = document.getElementById('manual-family-options');
+    const familySelect = document.getElementById('glm_family');
+    
+    console.log('Family selection mode changed to:', isManual ? 'manual' : 'auto');
+    console.log('Manual options element:', manualOptions);
+    
+    if (manualOptions) {
+        manualOptions.style.display = isManual ? 'block' : 'none';
+        console.log('Set manual options display to:', manualOptions.style.display);
+    } else {
+        console.error('Could not find manual-family-options element');
+    }
+    
+    if (familySelect) {
+        familySelect.disabled = !isManual;
+        console.log('Set family select disabled to:', familySelect.disabled);
+    } else {
+        console.error('Could not find glm_family select element');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM Loaded. Initializing AIC checkbox script...");
+    console.log('DOM fully loaded. Initializing scripts...');
+    
+    // Initialize model options based on current selection
+    toggleModelOptions();
+    
+    // Initialize family selection options
+    handleFamilySelection();
 
-    const independentVarsListDiv = document.getElementById('independent-vars-list');
+    // Get references to DOM elements
+    const modelType = document.getElementById('model_type');
+    const glmOptions = document.getElementById('glm_options');
+    const lmmOptions = document.getElementById('lmm_options');
+    const glmmOptions = document.getElementById('glmm_options');
+    const familyRadios = document.getElementsByName('family_selection_mode');
+    const manualOptions = document.getElementById('manual_family_options');
+    const familySelect = document.getElementById('glm_family');
+    const independentVarsDiv = document.getElementById('independent-vars-list');
     const aicCheckbox = document.getElementById('perform_aic');
-    // Removed references to varDescContainer and dynamicInputsContainer
+    
+    console.log('Found elements:', { 
+        modelType: modelType, 
+        glmOptions: glmOptions,
+        lmmOptions: lmmOptions,
+        glmmOptions: glmmOptions,
+        familyRadios: familyRadios?.length,
+        independentVarsDiv: independentVarsDiv
+    });
 
-    if (!independentVarsListDiv || !aicCheckbox) { // Simplified check
-        console.error("CRITICAL: Could not find essential elements ('independent-vars-list' or 'perform_aic'). Script aborted.");
-        return;
+    // Function to handle model type changes
+    function handleModelTypeChange() {
+        // Get the current model type value
+        const selectedType = modelType.value;
+        console.log('Model type changed to:', selectedType);
+        console.log('All option divs:', {
+            glm: glmOptions,
+            lmm: lmmOptions,
+            glmm: glmmOptions
+        });
+
+        // Log the current display state of all option sections
+        console.log('Current display states before change:', {
+            glm: glmOptions ? glmOptions.style.display : 'element not found',
+            lmm: lmmOptions ? lmmOptions.style.display : 'element not found',
+            glmm: glmmOptions ? glmmOptions.style.display : 'element not found'
+        });
+
+        // Hide all model-specific option sections
+        if (glmOptions) {
+            glmOptions.style.display = 'none';
+            console.log('Hidden GLM options');
+        }
+        if (lmmOptions) {
+            lmmOptions.style.display = 'none';
+            console.log('Hidden LMM options');
+        }
+        if (glmmOptions) {
+            glmmOptions.style.display = 'none';
+            console.log('Hidden GLMM options');
+        }
+        
+        // Show the appropriate options section based on the selected model type
+        console.log('About to show options for:', selectedType);
+        
+        if (selectedType && selectedType.toLowerCase() === 'glm' && glmOptions) {
+            glmOptions.style.display = 'block';
+            console.log('Showing GLM options');
+        } else if (selectedType && selectedType.toLowerCase() === 'lmm' && lmmOptions) {
+            lmmOptions.style.display = 'block';
+            console.log('Showing LMM options');
+        } else if (selectedType && selectedType.toLowerCase() === 'glmm' && glmmOptions) {
+            glmmOptions.style.display = 'block';
+            console.log('Showing GLMM options');
+        } else {
+            console.log('No matching option section found for:', selectedType);
+        }
+        
+        // Log final states
+        console.log('Display states after change:', {
+            glm: glmOptions ? glmOptions.style.display : 'element not found',
+            lmm: lmmOptions ? lmmOptions.style.display : 'element not found',
+            glmm: glmmOptions ? glmmOptions.style.display : 'element not found'
+        });
     }
 
+    // Function to handle family selection mode changes (for GLM)
+    function handleFamilySelectionModeChange(event) {
+        const isManual = event.target.value === 'manual';
+        console.log('Family selection changed to:', isManual ? 'manual' : 'auto');
+        
+        if (manualOptions) {
+            manualOptions.style.display = isManual ? 'block' : 'none';
+        }
+        
+        if (familySelect) {
+            familySelect.disabled = !isManual;
+            if (!isManual) {
+                familySelect.value = 'gaussian';
+            }
+        }
+    }
+    
     // Function to update AIC checkbox state based on selection
     function updateAICCheckboxState() {
-        const checkedBoxes = independentVarsListDiv.querySelectorAll('input[type="checkbox"][name="independent_vars"]:checked');
-        const checkedCount = checkedBoxes.length;
+        const checkedBoxes = document.querySelectorAll('input[name="independent_vars"]:checked');
+        if (aicCheckbox) {
+            const enableAIC = checkedBoxes.length > 1;
+            aicCheckbox.disabled = !enableAIC;
+            if (!enableAIC) {
+                aicCheckbox.checked = false;
+            }
+        }
+    }
+
+    // Add event listeners
+    if (modelType) {
+        // Add change listener to model type select
+        modelType.addEventListener('change', handleModelTypeChange);
+        console.log('Added change listener to model type select');
+        
+        // Initial call to set correct state based on current selection
+        handleModelTypeChange();
+        console.log('Initial model type setup complete');
+    } else {
+        console.error('Could not find model type select element!');
+    }
+    
+    // Add listeners to family selection radio buttons
+    if (familyRadios && familyRadios.length) {
+        familyRadios.forEach(radio => {
+            radio.addEventListener('change', handleFamilySelectionModeChange);
+        });
+        console.log('Added change listeners to family selection radios');
+        
+        // Initialize manual options visibility based on current selection
+        const selectedRadio = document.querySelector('input[name="family_selection_mode"]:checked');
+        if (selectedRadio) {
+            const isManual = selectedRadio.value === 'manual';
+            if (manualOptions) {
+                manualOptions.style.display = isManual ? 'block' : 'none';
+            }
+            if (familySelect) {
+                familySelect.disabled = !isManual;
+            }
+        }
+    }
+    
+    // Event listener for checkbox changes in independent variables
+    if (independentVarsDiv) {
+        independentVarsDiv.addEventListener('change', function(event) {
+            if (event.target.type === 'checkbox' && event.target.name === 'independent_vars') {
+                updateAICCheckboxState();
+            }
+        });
+        
+        // Initial call to set AIC checkbox state
+        updateAICCheckboxState();
+    }
+    
+    console.log('All initialization complete');
+}); // End DOMContentLoaded
+</script>
 
         console.log(`Updating AIC checkbox state. ${checkedCount} predictors selected.`);
 
@@ -302,41 +553,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function toggleModelOptions() {
-        // alert("DEBUG: toggleModelOptions() called!"); // Removed alert
         const selectedType = modelTypeSelect.value;
-        console.log(`Model type changed to: ${selectedType}. Toggling options using CSS classes...`);
+        console.log(`Model type changed to: ${selectedType}`);
         
-        // Add hidden class to all options divs first
-        glmOptionsDiv.classList.add('model-options-hidden');
-        lmmOptionsDiv.classList.add('model-options-hidden');
-        glmmOptionsDiv.classList.add('model-options-hidden');
+        // Hide all model-specific options first
+        document.querySelectorAll('.model-specific-options > div').forEach(div => {
+            div.classList.add('model-options-hidden');
+        });
         
-        // Remove hidden class from the relevant one
+        // Show the relevant options div
         if (selectedType === 'glm') {
-            // alert("DEBUG: Model type is GLM, removing hidden class..."); // Removed alert
             glmOptionsDiv.classList.remove('model-options-hidden');
-            console.log("Removed model-options-hidden from #glm_options");
+            console.log('Showing GLM options');
         } else if (selectedType === 'lmm') {
-             // alert("DEBUG: Model type is LMM, removing hidden class..."); // Removed alert
-            lmmOptionsDiv.classList.remove('model-options-hidden');
-            console.log("Removed model-options-hidden from #lmm_options");
+            document.getElementById('lmm_options')?.classList.remove('model-options-hidden');
+            console.log('Showing LMM options');
         } else if (selectedType === 'glmm') {
-             // alert("DEBUG: Model type is GLMM, removing hidden class..."); // Removed alert
-            glmmOptionsDiv.classList.remove('model-options-hidden');
-             console.log("Removed model-options-hidden from #glmm_options");
-        } else {
-             // alert("DEBUG: Model type is LM or other, ensuring all hidden."); // Removed alert
-             console.log("Model type is LM or other, all options remain hidden.");
-        }
     }
+}
+
+// Event listener for model type change
+modelTypeSelect.addEventListener('change', toggleModelOptions);
     
-    // Event listener for model type change
-    modelTypeSelect.addEventListener('change', toggleModelOptions);
-    
-    // Initial call to set the correct options visibility on page load
-    console.log("Running initial model options toggle...");
-    toggleModelOptions();
-    console.log("Model options script initialization complete.");
+// Initial call to set the correct options visibility on page load
+console.log("Running initial model options toggle...");
+toggleModelOptions();
+console.log("Model options script initialization complete.");
 
 }); // End DOMContentLoaded
 </script>
