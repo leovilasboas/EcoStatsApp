@@ -1271,31 +1271,13 @@ Interpretation:"""
 @login_required # Protect download
 def download_plot(unique_id, plot_type, format):
     # TODO: Add check if the user is allowed to download this plot (based on original file owner?)
-    
-    # !!! ORIGINAL CODE FOR FINDING/SENDING THE PLOT NEEDS TO BE HERE !!!
-    # Example placeholder (ensure this block is present and indented):
-    plot_filename = f"{plot_type}_{unique_id}.{format}"
-    plot_path = os.path.join(app.config['PLOT_FOLDER'], plot_filename)
-    app.logger.info(f"Attempting to send plot: {plot_path}")
-    
-    if not os.path.exists(plot_path):
-        flash(f"Plot file {plot_filename} not found.", "danger")
-        return redirect(url_for('index')) # Placeholder redirect
-    
-    try:
-        return send_from_directory(app.config['PLOT_FOLDER'], plot_filename, as_attachment=True)
-    except Exception as e:
-        app.logger.error(f"Error sending plot {plot_filename}: {e}")
-        flash("Error occurred while trying to download the plot.", "danger")
-        return redirect(url_for('index')) # Placeholder redirect
-    # pass # Make sure at least this pass is here if the block above is missing
+    pass # Ensure at least pass is present and indented
 
 @app.route('/ask_ai', methods=['POST'])
 @login_required # Protect AI route
 def ask_ai():
     # TODO: Ensure context passed belongs to the current user if necessary
-    # ... (rest of ask_ai logic) ...
-    pass # Add pass to ensure an indented block
+    pass # Ensure at least pass is present and indented
 
 # === Database Initialization Command ===
 @app.cli.command('init-db')
@@ -1423,7 +1405,7 @@ def upload_file():
         filename = file.filename # Needs secure filename and user association
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         try:
-            file.save(filepath)
+        file.save(filepath)
             # TODO: Add record to DB associating filename/path with current_user.id
             flash(f'File "{filename}" uploaded successfully.')
             # Redirect to analyze, passing user context implicitly via login
