@@ -35,14 +35,63 @@ import logging # Re-add the missing import
 import requests # Add requests import
 import sys # Add sys import
 from flask_session import Session # Add this import
+from flask_sqlalchemy import SQLAlchemy             # Import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user # Import Flask-Login components
+from werkzeug.security import generate_password_hash, check_password_hash # For passwords
+from dotenv import load_dotenv                     # For local .env file
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+
+load_dotenv() # Load environment variables from .env file (if it exists)
 
 # Initialize Flask app - it will find 'templates' and 'static' folders by default
 app = Flask(__name__) # Removed template_folder and static_folder arguments
 
+# --- Database Configuration --- 
+db_url = os.environ.get('DATABASE_URL')
+if db_url and db_url.startswith("postgres://"): # Fix for newer Heroku/Render URLs
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///local_dev.db' # Use DATABASE_URL or fallback to local sqlite
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Disable modification tracking
+
+db = SQLAlchemy(app) # Initialize SQLAlchemy
+# ---------------------------
+
+# --- Login Manager Configuration --- 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login' # Redirect to 'login' view if user tries to access protected page
+# ----------------------------------
+
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24)) # Use env var or random
-app.config['SESSION_TYPE'] = 'filesystem' # Simple filesystem session for now
-app.config['SESSION_PERMANENT'] = False
-# Session(app) # Initialize Flask-Session - uncomment if Flask-Session is used
+# Flask-Session config might need adjustment depending on how it integrates with SQLAlchemy/Login
+# app.config['SESSION_TYPE'] = 'filesystem'
+# app.config['SESSION_PERMANENT'] = False
+# Session(app)
+
+# === User Model ===
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False) # Added email
+    password_hash = db.Column(db.String(256), nullable=False) # Increased length for stronger hashes
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+# =================
+
+# === Flask-Login User Loader ===
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id)) # Use db.session.get for SQLAlchemy 2.0+
+# =============================
 
 # Define simple relative paths for uploads and plots
 # Note: Filesystem might be ephemeral on free hosting tiers!
@@ -1321,6 +1370,16 @@ def ask_ai():
          
     return jsonify({"response": ai_response})
 
+# === Database Initialization Command ===
+@app.cli.command('init-db')
+def init_db_command():
+    """Clear existing data and create new tables."""
+    with app.app_context(): # Ensure we are in app context
+        db.drop_all() # Drop all tables (Use with caution!)
+        db.create_all() # Create tables based on models
+    print('Initialized the database.')
+# ======================================
+
 # --- Remove app.run block --- 
 # if __name__ == '__main__':
 #     import logging
@@ -1329,3 +1388,151 @@ def ask_ai():
 #     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 #     os.makedirs(app.config['PLOT_FOLDER'], exist_ok=True)
 #     app.run(debug=True, port=5001) # Use a different port if needed 
+
+# === Forms ===
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', 
+                           validators=[DataRequired(), Length(min=2, max=20)])
+    email = StringField('Email', 
+                        validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', 
+                                     validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Sign Up')
+
+    # Custom validators to check if username/email already exists
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('That username is taken. Please choose a different one.')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('That email is already registered. Please choose a different one or login.')
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', 
+                        validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember = BooleanField('Remember Me')
+    submit = SubmitField('Login')
+# ===========
+
+# --- Folder Configuration --- 
+# ... (rest of the app setup) ...
+
+# === Authentication Routes ===
+@app.route("/register", methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        with app.app_context(): # Ensure context for db operations
+            db.session.add(user)
+            db.session.commit()
+        flash('Your account has been created! You are now able to log in', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html', title='Register', form=form)
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next') # Redirect back after login if needed
+            flash('Login Successful!', 'success')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+        else:
+            flash('Login Unsuccessful. Please check email and password', 'danger')
+    return render_template('login.html', title='Login', form=form)
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+# =========================
+
+# --- Application Routes (Modify these) ---
+@app.route('/') # Modify index route
+@login_required # Protect index route
+def index():
+    # TODO: Modify to show files ONLY for the current_user
+    # List files in the upload folder (TEMPORARY - Needs user association)
+    try:
+        # This logic needs complete replacement with DB queries based on current_user.id
+        # For now, it will still show all files
+        uploaded_files = os.listdir(app.config['UPLOAD_FOLDER'])
+        uploaded_files = [f for f in uploaded_files if not f.startswith('.')] 
+    except FileNotFoundError:
+        uploaded_files = []
+        # flash("Upload directory not found...") # Less relevant now
+    return render_template('index.html', uploaded_files=uploaded_files)
+
+@app.route('/upload', methods=['POST'])
+@login_required # Protect upload route
+def upload_file():
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(request.url) # Redirect likely back to index
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    if file:
+        # TODO: Save file securely associated with current_user.id
+        # Option 1 (Cloud Storage - Recommended): Upload to S3/GCS, store ref in DB
+        # Option 2 (Local - Ephemeral): Save to user-specific subfolder or unique name
+        # For now, keeps saving globally (PROBLEM)
+        filename = file.filename # Needs secure filename and user association
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        try:
+            file.save(filepath)
+            # TODO: Add record to DB associating filename/path with current_user.id
+            flash(f'File "{filename}" uploaded successfully.')
+            # Redirect to analyze, passing user context implicitly via login
+            return redirect(url_for('analyze', filename=filename))
+        except Exception as e:
+            flash(f'An error occurred while saving the file: {e}')
+            return redirect(url_for('index'))
+    return redirect(url_for('index'))
+
+@app.route('/analyze/<filename>', methods=['GET', 'POST'])
+@login_required # Protect analyze route
+def analyze(filename):
+    # TODO: Check if current_user is allowed to access this filename (query DB)
+    # This check is missing, allowing any logged-in user to analyze any file if they know the name
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(filepath):
+        flash(f'Error: File "{filename}" not found or you do not have access.')
+        return redirect(url_for('index'))
+    
+    # ... (rest of the analyze logic remains largely the same for now) ...
+    # ... (but plotting functions will need adjustment if paths change) ...
+    # Ensure session_id usage is still appropriate or replace with user-based ID for uniqueness
+    # session_id = str(current_user.id) # Example: Use user ID for plot naming?
+    session_id = session.get('_id', str(uuid.uuid4())) # Keep session ID for now
+    if '_id' not in session: session['_id'] = session_id
+    # ... (rest of analyze route) ...
+
+# ... (Other routes like download_plot, ask_ai also need @login_required and access checks) ...
+
+@app.route('/download_plot/<unique_id>/<plot_type>/<format>')
+@login_required # Protect download
+def download_plot(unique_id, plot_type, format):
+    # TODO: Add check if the user is allowed to download this plot (based on original file owner?)
+    # ... (rest of download logic) ...
+
+@app.route('/ask_ai', methods=['POST'])
+@login_required # Protect AI route
+def ask_ai():
+    # TODO: Ensure context passed belongs to the current user if necessary
+    # ... (rest of ask_ai logic) ...

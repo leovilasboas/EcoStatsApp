@@ -1,5 +1,11 @@
 Flask
 Flask-Session
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+Werkzeug
+psycopg2-binary
+python-dotenv
 pandas
 statsmodels
 scipy
