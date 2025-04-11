@@ -22,6 +22,11 @@
     /* Style for hidden items if needed (might not be necessary if we just don't render them) */
     /* .form-check.hidden-var { display: none; } */
     #aic_checkbox_div { display: block; }
+    
+    /* Class to hide model-specific options */
+    .model-options-hidden {
+        display: none !important;
+    }
 </style>
 {% endblock %}
 
@@ -81,68 +86,80 @@
                     </div>
                 </div>
 
-                 <!-- GLM Specific Options (Initially Hidden) -->
-                <div id="glm_options" class="mb-3 border p-3 rounded bg-light" style="display: none;">
-                    <h6>GLM Options</h6>
-                     <label for="glm_family" class="form-label">Family:</label>
-                    <select class="form-select form-select-sm choices-select" id="glm_family" name="glm_family">
-                        <option value="auto" selected>Auto-Detect</option>
-                        <option value="gaussian">Gaussian (Normal)</option>
-                        <option value="binomial">Binomial (Logit)</option>
-                        <option value="poisson">Poisson (Log)</option>
-                        <option value="gamma">Gamma (Inverse)</option>
-                        <option value="inverse_gaussian">Inverse Gaussian (1/mu^2)</option>
-                        <!-- Add other families as needed -->
-                    </select>
-                </div>
-
-                <!-- LMM Specific Options (Initially Hidden) -->
-                <div id="lmm_options" class="mb-3 border p-3 rounded bg-light" style="display: none;">
-                     <h6>LMM Options</h6>
-                    <label for="grouping_vars" class="form-label" id="grouping_vars_label">Grouping Variable(s) (Random Effects):</label>
-                    <select class="form-select choices-multiple" id="grouping_vars" name="grouping_vars" multiple>
-                         {% for column in columns %}
-                            <option value="{{ column }}">{{ column }}</option>
-                        {% endfor %}
-                    </select>
-                    <small class="text-muted">Select the column(s) identifying groups/clusters.</small>
-                </div>
-
-                 <!-- GEE Specific Options (Initially Hidden) -->
-                <div id="glmm_options" class="mb-3 border p-3 rounded bg-light" style="display: none;">
-                    <h6>GEE (GLMM) Options</h6>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="gee_family" class="form-label">Family:</label>
-                            <select class="form-select form-select-sm choices-select" id="gee_family" name="gee_family">
-                                <option value="auto" selected>Auto-Detect</option>
-                                <option value="gaussian">Gaussian</option>
+                 <!-- GLM, LMM, GEE Options ... -->
+                 <div id="glm_options" class="mb-3 border p-3 rounded bg-light model-options-hidden">
+                     <!-- GLM content -->
+                     <h6 class="mb-3"><i class="bi bi-distribute-vertical me-2"></i>GLM Specific Options</h6>
+                     <div class="row g-3">
+                         <div class="col-md-6">
+                            <label for="glm_family" class="form-label">Family:</label>
+                            <select class="form-select form-select-sm choices-select-glm" id="glm_family" name="glm_family">
+                                <option value="gaussian" selected>Gaussian (Default)</option>
                                 <option value="binomial">Binomial</option>
                                 <option value="poisson">Poisson</option>
                                 <option value="gamma">Gamma</option>
                                 <option value="inverse_gaussian">Inverse Gaussian</option>
                             </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="group_id_var" class="form-label" id="group_id_var_label">Group ID Variable:</label>
-                            <select class="form-select form-select-sm choices-select" id="group_id_var" name="group_id_var">
-                                <option value="">Select Group ID</option>
-                                {% for column in columns %}
+                         </div>
+                         <div class="col-md-6 d-flex align-items-end">
+                             <div class="form-check">
+                                 <input class="form-check-input" type="checkbox" value="on" id="auto_select_family" name="auto_select_family" checked>
+                                 <label class="form-check-label" for="auto_select_family">
+                                     Auto-Select Family based on data
+                                 </label>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+                 <div id="lmm_options" class="mb-3 border p-3 rounded bg-light model-options-hidden">
+                      <!-- LMM content -->
+                      <h6 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>LMM Specific Options</h6>
+                      <div class="mb-3">
+                           <label for="grouping_vars" class="form-label">Grouping Variable(s) (for Random Effects): <span class="text-danger">*</span></label>
+                           <select class="form-select choices-multiple-lmm" id="grouping_vars" name="grouping_vars" multiple>
+                               {# Options populated by JS/Logic - Should be categorical columns #}
+                               {% for column in columns %}
+                                    {# Add logic later if needed to filter only categorical #}
                                     <option value="{{ column }}">{{ column }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="text-muted">Column identifying independent groups.</small>
-                        </div>
-                        <div class="col-md-4">
-                             <label for="cov_struct" class="form-label">Covariance Structure:</label>
-                            <select class="form-select form-select-sm choices-select" id="cov_struct" name="cov_struct">
-                                <option value="exchangeable" selected>Exchangeable</option>
-                                <option value="independence">Independence</option>
-                                <option value="autoregressive">Autoregressive (AR-1)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                               {% endfor %}
+                           </select>
+                           <small class="text-muted">Select the column(s) defining groups (e.g., Site, Individual).</small>
+                      </div>
+                 </div>
+                 <div id="glmm_options" class="mb-3 border p-3 rounded bg-light model-options-hidden">
+                     <!-- GEE content -->
+                     <h6 class="mb-3"><i class="bi bi-boxes me-2"></i>GEE/GLMM Specific Options</h6>
+                      <div class="row g-3">
+                          <div class="col-md-6">
+                               <label for="gee_family" class="form-label">Family:</label>
+                               <select class="form-select form-select-sm choices-select-gee" id="gee_family" name="gee_family">
+                                   <option value="gaussian" selected>Gaussian (Default)</option>
+                                   <option value="binomial">Binomial</option>
+                                   <option value="poisson">Poisson</option>
+                                   <option value="gamma">Gamma</option>
+                                   <option value="inverse_gaussian">Inverse Gaussian</option>
+                               </select>
+                          </div>
+                           <div class="col-md-6">
+                                <label for="cov_struct" class="form-label">Covariance Structure:</label>
+                                <select class="form-select form-select-sm choices-select-gee" id="cov_struct" name="cov_struct">
+                                    <option value="independence" selected>Independence</option>
+                                    <option value="exchangeable">Exchangeable</option>
+                                    <option value="autoregressive">Autoregressive (AR1)</option>
+                                </select>
+                           </div>
+                      </div>
+                      <div class="mt-3">
+                          <label for="gee_grouping_var" class="form-label">Grouping Variable (Subject ID): <span class="text-danger">*</span></label>
+                          <select class="form-select form-select-sm choices-select-gee" id="gee_grouping_var" name="gee_grouping_var">
+                               <option value="">Select Grouping Variable</option>
+                               {% for column in columns %}
+                                   <option value="{{ column }}">{{ column }}</option>
+                               {% endfor %}
+                          </select>
+                           <small class="text-muted">Select the column identifying repeated measurements.</small>
+                      </div>
+                  </div>
 
                 <!-- Independent Variables (Checkbox List - Rendered by Server) -->
                 <div class="mb-3">
@@ -239,6 +256,87 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Running initial AIC checkbox update...");
     updateAICCheckboxState();
     console.log("AIC checkbox script initialization complete.");
+    
+    // --- Initialize Choices.js for Selects ---
+    console.log("Initializing Choices.js for all relevant selects...");
+    let choicesInstances = {}; // Store instances if needed later
+    
+    // Initialize standard single selects
+    document.querySelectorAll('.choices-select').forEach(el => {
+        try {
+            choicesInstances[el.id] = new Choices(el, { searchEnabled: true, itemSelectText: '', shouldSort: false, allowHTML: false });
+        } catch (e) { console.error(`Error initializing Choices for #${el.id}:`, e); }
+    });
+    
+    // Initialize selects within GLM options
+    document.querySelectorAll('.choices-select-glm').forEach(el => {
+        try {
+            choicesInstances[el.id] = new Choices(el, { searchEnabled: false, itemSelectText: '', shouldSort: false, allowHTML: false }); // Disable search for family?
+        } catch (e) { console.error(`Error initializing Choices for #${el.id}:`, e); }
+    });
+
+    // Initialize selects within LMM options (multi-select example)
+     document.querySelectorAll('.choices-multiple-lmm').forEach(el => {
+         try {
+             choicesInstances[el.id] = new Choices(el, { removeItemButton: true, searchEnabled: true, shouldSort: false, allowHTML: false });
+         } catch (e) { console.error(`Error initializing Choices for #${el.id}:`, e); }
+     });
+     
+    // Initialize selects within GEE options
+    document.querySelectorAll('.choices-select-gee').forEach(el => {
+        try {
+            choicesInstances[el.id] = new Choices(el, { searchEnabled: true, itemSelectText: '', shouldSort: false, allowHTML: false });
+        } catch (e) { console.error(`Error initializing Choices for #${el.id}:`, e); }
+    });
+    console.log("Choices.js initialization attempted for all selects.");
+
+    // --- Logic for Model Specific Options --- 
+    const modelTypeSelect = document.getElementById('model_type');
+    const glmOptionsDiv = document.getElementById('glm_options');
+    const lmmOptionsDiv = document.getElementById('lmm_options');
+    const glmmOptionsDiv = document.getElementById('glmm_options');
+    
+    if (!modelTypeSelect || !glmOptionsDiv || !lmmOptionsDiv || !glmmOptionsDiv) {
+        console.error("CRITICAL: Could not find model type select or options divs. Model specific options will not work.");
+        return;
+    }
+
+    function toggleModelOptions() {
+        // alert("DEBUG: toggleModelOptions() called!"); // Removed alert
+        const selectedType = modelTypeSelect.value;
+        console.log(`Model type changed to: ${selectedType}. Toggling options using CSS classes...`);
+        
+        // Add hidden class to all options divs first
+        glmOptionsDiv.classList.add('model-options-hidden');
+        lmmOptionsDiv.classList.add('model-options-hidden');
+        glmmOptionsDiv.classList.add('model-options-hidden');
+        
+        // Remove hidden class from the relevant one
+        if (selectedType === 'glm') {
+            // alert("DEBUG: Model type is GLM, removing hidden class..."); // Removed alert
+            glmOptionsDiv.classList.remove('model-options-hidden');
+            console.log("Removed model-options-hidden from #glm_options");
+        } else if (selectedType === 'lmm') {
+             // alert("DEBUG: Model type is LMM, removing hidden class..."); // Removed alert
+            lmmOptionsDiv.classList.remove('model-options-hidden');
+            console.log("Removed model-options-hidden from #lmm_options");
+        } else if (selectedType === 'glmm') {
+             // alert("DEBUG: Model type is GLMM, removing hidden class..."); // Removed alert
+            glmmOptionsDiv.classList.remove('model-options-hidden');
+             console.log("Removed model-options-hidden from #glmm_options");
+        } else {
+             // alert("DEBUG: Model type is LM or other, ensuring all hidden."); // Removed alert
+             console.log("Model type is LM or other, all options remain hidden.");
+        }
+    }
+    
+    // Event listener for model type change
+    modelTypeSelect.addEventListener('change', toggleModelOptions);
+    
+    // Initial call to set the correct options visibility on page load
+    console.log("Running initial model options toggle...");
+    toggleModelOptions();
+    console.log("Model options script initialization complete.");
 
 }); // End DOMContentLoaded
 </script>
