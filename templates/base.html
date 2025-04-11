@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Ecological Analysis App{% endblock %}</title>
+    <title>{% block title %}EcoStats App{% endblock %}</title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,138 +13,198 @@
     <!-- Choices.js CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
     <!-- Bootstrap Icons CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Custom styles */
+        body {
+            padding-top: 56px; /* Adjust based on navbar height */
+            padding-bottom: 60px; /* Space for footer */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .container {
+            flex: 1; /* Allows the main content to grow */
+        }
+        .footer {
+            padding: 1rem 0;
+            text-align: center;
+            margin-top: auto; /* Pushes footer to the bottom */
+            font-size: 0.9em;
+        }
+        /* ... other styles ... */
+         .bi { vertical-align: -.125em; fill: currentColor; }
+         #flash-messages .alert { margin-bottom: 0.5rem; }
+
+         /* Make table in results scrollable */
+         .table-responsive {
+            max-height: 400px; /* Adjust as needed */
+            overflow-y: auto;
+         }
+         /* Style for code blocks in interpretation */
+        code {
+            background-color: #f8f9fa; /* Light grey background */
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            border-radius: 3px;
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        pre code {
+            display: block;
+            padding: 1em;
+            overflow-x: auto;
+        }
+        .card-body-scrollable {
+            max-height: 500px; /* Adjust as needed */
+            overflow-y: auto;
+        }
+    </style>
     {% block head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-graph-up-arrow me-2" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
-                </svg>
-                EcoStats Analyzer
+                 EcoStats App {# Restore text brand #}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    {# Removed authentication links #}
-                    {# Example: You might add other links here if needed #}
-                    {# <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('about') }}">About</a>
-                    </li> #}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Home / Upload</a>
+                    </li>
+                     <!-- Add other nav items here if needed -->
                 </ul>
+
+                <!-- Theme Toggler -->
+                <div class="nav-item dropdown">
+                    <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" id="themeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-sun-fill theme-icon-active" data-theme-icon-active="bi-sun-fill"></i>
+                        <span class="d-lg-none ms-2">Toggle theme</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="themeDropdown">
+                        <li><button class="dropdown-item d-flex align-items-center" type="button" data-bs-theme-value="light">
+                            <i class="bi bi-sun-fill me-2 theme-icon" data-theme-icon="bi-sun-fill"></i>Light</button></li>
+                        <li><button class="dropdown-item d-flex align-items-center" type="button" data-bs-theme-value="dark">
+                            <i class="bi bi-moon-stars-fill me-2 theme-icon" data-theme-icon="bi-moon-stars-fill"></i>Dark</button></li>
+                        <li><button class="dropdown-item d-flex align-items-center active" type="button" data-bs-theme-value="auto">
+                            <i class="bi bi-circle-half me-2 theme-icon" data-theme-icon="bi-circle-half"></i>Auto</button></li>
+                    </ul>
+                </div>
+
             </div>
         </div>
     </nav>
 
-    <main class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category if category != 'danger' else 'danger' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
+    <div class="container mt-4">
+        <div id="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category or 'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
         {% block content %}{% endblock %}
-    </main>
+    </div>
 
-    <footer class="bg-dark text-white text-center p-3 mt-5 fixed-bottom">
-        <p>&copy; {{ now.year }} EcoStats App by @brayvb. All rights reserved.</p>
+    <footer class="footer mt-auto py-3 bg-body-tertiary">
+        <div class="container text-center">
+            <span class="text-muted">© {{ now.year }} EcoStats App by @brayvb. All rights reserved.</span>
+        </div>
     </footer>
 
     <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Choices.js JS -->
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     {% block scripts %}
     <script>
-        // --- Theme Toggle Script ---
-        const themeToggleButton = document.getElementById('theme-toggle');
-        const lightIcon = document.getElementById('theme-icon-light');
-        const darkIcon = document.getElementById('theme-icon-dark');
-        const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+    /*!
+     * Color mode toggler for Bootstrap's docs (https://getbootstrap.com/)
+     * Copyright 2011-2023 The Bootstrap Authors
+     * Licensed under the Creative Commons Attribution 3.0 Unported License.
+     */
+    (() => {
+        'use strict'
 
-        // Function to apply the theme
-        const applyTheme = (theme) => {
-            if (theme === 'dark') {
-                document.body.classList.add('dark-mode');
-                lightIcon.classList.add('d-none');
-                darkIcon.classList.remove('d-none');
-            } else {
-                document.body.classList.remove('dark-mode');
-                darkIcon.classList.add('d-none');
-                lightIcon.classList.remove('d-none');
+        const storedTheme = localStorage.getItem('theme')
+
+        const getPreferredTheme = () => {
+            if (storedTheme) {
+                return storedTheme
             }
-        };
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
 
-        // Apply the saved theme on initial load
-        if (currentTheme) {
-            applyTheme(currentTheme);
-        } else {
-            // Optional: Default to user's system preference if no theme saved
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                // applyTheme('dark'); // Uncomment to default to system dark mode
+        const setTheme = function (theme) {
+            if (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-bs-theme', 'dark')
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', theme)
             }
         }
 
-        // Add event listener to the button
-        themeToggleButton.addEventListener('click', () => {
-            let newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
-            applyTheme(newTheme);
-            localStorage.setItem('theme', newTheme);
-        });
+        setTheme(getPreferredTheme())
 
-        // --- Copy to Clipboard Function ---
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
+        const showActiveTheme = (theme, focus = false) => {
+            const themeSwitcher = document.querySelector('#themeDropdown')
+            if (!themeSwitcher) return
 
-            let textToCopy = '';
-            if (element.tagName === 'PRE') {
-                // For logs, get the text content
-                textToCopy = element.textContent || element.innerText;
-            } else if (element.querySelector('table')) {
-                // For summary table, get innerText (attempts to respect table layout somewhat)
-                const table = element.querySelector('table');
-                textToCopy = table.innerText;
-            } else {
-                 // For other divs (like formal results), get innerText to handle <br> etc.
-                 textToCopy = element.innerText;
-            }
-            
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    // Optional: Add visual feedback (e.g., change button text briefly)
-                    alert('Copied to clipboard!'); 
-                }).catch(err => {
-                    console.error('Failed to copy text: ', err);
-                    alert('Failed to copy text.');
-                });
-            } else {
-                // Fallback for older browsers (less reliable)
-                try {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = textToCopy;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    alert('Copied to clipboard! (fallback)');
-                } catch (err) {
-                     console.error('Fallback copy failed: ', err);
-                     alert('Failed to copy text.');
-                }
+            const themeSwitcherText = document.querySelector('#themeDropdown span:not(.d-lg-none)')
+            const activeThemeIcon = document.querySelector('.theme-icon-active')
+            const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`)
+            const iconOfActiveBtn = btnToActive.querySelector('i').getAttribute('data-theme-icon')
+
+            document.querySelectorAll('[data-bs-theme-value]').forEach(element => {
+                element.classList.remove('active')
+                element.setAttribute('aria-pressed', 'false')
+            })
+
+            btnToActive.classList.add('active')
+            btnToActive.setAttribute('aria-pressed', 'true')
+
+            activeThemeIcon.classList.remove(activeThemeIcon.getAttribute('data-theme-icon-active'));
+            activeThemeIcon.classList.add(iconOfActiveBtn);
+            activeThemeIcon.setAttribute('data-theme-icon-active', iconOfActiveBtn);
+
+            const themeSwitcherLabel = `${themeSwitcherText ? themeSwitcherText.textContent : ''} (${btnToActive.dataset.bsThemeValue})`
+            themeSwitcher.setAttribute('aria-label', themeSwitcherLabel)
+
+            if (focus) {
+                themeSwitcher.focus()
             }
         }
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (storedTheme !== 'light' && storedTheme !== 'dark') {
+                setTheme(getPreferredTheme())
+            }
+        })
+
+        window.addEventListener('DOMContentLoaded', () => {
+            showActiveTheme(getPreferredTheme())
+
+            document.querySelectorAll('[data-bs-theme-value]')
+                .forEach(toggle => {
+                    toggle.addEventListener('click', () => {
+                        const theme = toggle.getAttribute('data-bs-theme-value')
+                        localStorage.setItem('theme', theme)
+                        setTheme(theme)
+                        showActiveTheme(theme, true)
+                    })
+                })
+        })
+    })()
     </script>
     {% endblock %}
 </body>

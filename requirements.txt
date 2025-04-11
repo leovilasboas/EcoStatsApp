@@ -1,11 +1,11 @@
-Flask
-Flask-Session
-pandas
-statsmodels
+Flask==2.2.2
+Flask-Session==0.4.0
+pandas==1.5.3
+statsmodels==0.13.5
 scipy
-patsy
-matplotlib
-seaborn
-openpyxl
-requests # Kept for potential external API calls
-gunicorn # WSGI server for production
+patsy==0.5.3
+matplotlib==3.6.3
+seaborn==0.12.2
+openpyxl==3.0.10
+requests==2.28.2
+gunicorn==20.1.0

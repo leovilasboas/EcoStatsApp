@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4"><i class="bi bi-sliders me-2"></i>Configure Analysis: {{ filename }}</h1>
+<h1 class="mb-4"><i class="bi bi-sliders me-2"></i>Configure Analysis: <span class="fw-normal">{{ filename }}</span></h1>
 
 <!-- Data Preview Section (Collapsible) -->
 {% if preview_html %}
@@ -22,7 +22,7 @@
         </button>
     </h2>
     <div id="collapsePreview" class="collapse">
-        <div class="card card-body">
+        <div class="card card-body shadow-sm">
             <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
                 {{ preview_html | safe }}
             </div>
@@ -34,26 +34,26 @@
 <!-- End Data Preview Section -->
 
 <form id="analysis-form" action="{{ url_for('analyze', filename=filename) }}" method="post">
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm">
         <div class="card-header"><i class="bi bi-gear-fill me-2"></i>Model Configuration</div>
         <div class="card-body">
             <div class="row mb-3">
                 <!-- Dependent Variable -->
                 <div class="col-md-6">
-                    <label for="dependent_var" class="form-label">Dependent Variable (Y):</label>
+                    <label for="dependent_var" class="form-label"><i class="bi bi-bullseye me-1"></i>Dependent Variable (Y):</label>
                     <select id="dependent_var" name="dependent_var" class="form-select" required>
                         <option value="" disabled selected>Select Variable</option>
                         {% for col in columns %}
                         <option value="{{ col }}">{{ col }}</option>
                         {% endfor %}
                     </select>
-                    <label for="dep_var_description" class="form-label mt-2">Describe Dependent Variable:</label>
+                    <label for="dep_var_description" class="form-label mt-2"><i class="bi bi-card-text me-1"></i>Describe Dependent Variable:</label>
                     <input type="text" id="dep_var_description" name="dep_var_description" class="form-control form-control-sm" placeholder="e.g., Body mass in grams">
                 </div>
 
                 <!-- Model Type -->
                 <div class="col-md-6">
-                    <label for="model_type" class="form-label">Model Type:</label>
+                    <label for="model_type" class="form-label"><i class="bi bi-diagram-3 me-1"></i>Model Type:</label>
                     <select id="model_type" name="model_type" class="form-select" required onchange="toggleModelOptions()">
                         <option value="" disabled selected>Select Model</option>
                         <option value="lm">Linear Model (LM)</option>
@@ -66,7 +66,7 @@
 
             <!-- Independent Variables -->
             <div class="mb-3">
-                <label for="independent_vars" class="form-label">Independent Variable(s) (X):</label>
+                <label for="independent_vars" class="form-label"><i class="bi bi-list-task me-1"></i>Independent Variable(s) (X):</label>
                 <select id="independent_vars" name="independent_vars" class="form-select" multiple required size="8">
                     {% for col in columns %}
                     <option value="{{ col }}">{{ col }}</option>
@@ -82,14 +82,14 @@
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" name="perform_aic" id="perform_aic" value="on">
                 <label class="form-check-label" for="perform_aic">
-                    Perform Model Selection using AIC/QIC (Backward Elimination)
+                    <i class="bi bi-calculator me-1"></i> Perform Model Selection using AIC/QIC (Backward Elimination)
                 </label>
                  <small class="form-text text-muted d-block">Requires >1 predictor. Note: QIC selection for GEE is not yet fully implemented (returns full model).</small>
             </div>
 
             <!-- GLM Specific Options (Hidden by default) -->
             <div id="glm_options" class="hidden model-options-group">
-                <legend>GLM Options</legend>
+                <legend><i class="bi bi-sliders2 me-2"></i>GLM Options</legend>
                 <div class="mb-3">
                     <label for="glm_family" class="form-label">Family:</label>
                     <select id="glm_family" name="glm_family" class="form-select">
@@ -99,7 +99,6 @@
                         <option value="poisson">Poisson</option>
                         <option value="gamma">Gamma</option>
                         <option value="inverse_gaussian">Inverse Gaussian</option>
-                        <!-- Add other families if needed -->
                     </select>
                     <small class="form-text text-muted">Select the distribution family for GLM. 'Auto-Select' uses heuristics based on the dependent variable.</small>
                 </div>
@@ -107,7 +106,7 @@
 
             <!-- LMM/GEE Specific Options (Hidden by default) -->
             <div id="lmm_options" class="hidden model-options-group">
-                <legend>LMM / GEE Options</legend>
+                <legend><i class="bi bi-intersect me-2"></i>LMM / GEE Options</legend>
                 <div class="mb-3">
                     <label for="grouping_vars" class="form-label">Grouping Variable(s):</label>
                     <select id="grouping_vars" name="grouping_vars" class="form-select" multiple size="3">
@@ -135,7 +134,6 @@
                         <option value="exchangeable" selected>Exchangeable (Default)</option>
                         <option value="independence">Independence</option>
                         <option value="autoregressive">Autoregressive (AR-1)</option>
-                        <!-- Add other structures if needed -->
                     </select>
                     <small class="form-text text-muted">Select the working correlation structure for GEE.</small>
                 </div>
@@ -145,14 +143,15 @@
                     <input type="text" id="random_effects_formula" name="random_effects_formula" class="form-control" placeholder="e.g., 1 + X | Group (omit ~)">
                      <small class="form-text text-muted">Optional for LMM. Defines random intercepts/slopes. Leave blank for random intercepts only.</small>
                 </div>
-                <div class="alert alert-info" role="alert">
-                    For GEE (selected as GLMM), Covariance Structure defaults to Exchangeable.
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>For GEE (selected as GLMM), Covariance Structure defaults to Exchangeable.</div>
                 </div>
             </div>
 
-            <!-- NEW: API Token Input -->
+            <!-- API Token Input -->
             <div class="mt-4 pt-3 border-top">
-                 <label for="hf_api_token" class="form-label">Hugging Face API Token (Optional):</label>
+                 <label for="hf_api_token" class="form-label"><i class="bi bi-key-fill me-1"></i>Hugging Face API Token (Optional):</label>
                  <input type="password" id="hf_api_token" name="hf_api_token" class="form-control" placeholder="Enter your read token (hf_...)">
                  <small class="form-text text-muted">Needed for AI interpretation. Your token will be sent with the analysis request. Get a token from Hugging Face settings. Leave blank to disable AI interpretation.</small>
             </div>
@@ -171,6 +170,40 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    // --- Dynamic Variable Description Input --- 
+    const indepVarSelect = document.getElementById('independent_vars');
+    const descriptionContainer = document.getElementById('indep_var_descriptions');
+
+    function addDescriptionInput(variableName) {
+        const div = document.createElement('div');
+        div.classList.add('input-group', 'input-group-sm', 'mb-1');
+        div.id = `desc-group-${variableName}`;
+        div.innerHTML = `
+            <span class="input-group-text"><i class="bi bi-pencil me-2"></i>${variableName}:</span>
+            <input type="text" name="desc_${variableName}" class="form-control" placeholder="Describe (e.g., Treatment type)">
+        `;
+        descriptionContainer.appendChild(div);
+    }
+
+    function removeDescriptionInput(variableName) {
+        const element = document.getElementById(`desc-group-${variableName}`);
+        if (element) {
+            element.remove();
+        }
+    }
+
+    // Event listener for Choices.js changes (using its custom event)
+    indepVarSelect.addEventListener('change', function(event) {
+        // Clear existing descriptions
+        descriptionContainer.innerHTML = '';
+        // Get selected values (might need adjustment based on Choices.js version)
+        const selectedValues = Array.from(indepVarSelect.selectedOptions).map(opt => opt.value);
+        selectedValues.forEach(value => {
+            addDescriptionInput(value);
+        });
+    }, false);
+    // --- End Dynamic Variable Description Input ---
+
     function toggleModelOptions() {
         const modelType = document.getElementById('model_type').value;
         const glmOptions = document.getElementById('glm_options');
@@ -248,62 +281,58 @@
             }
             // --- End New Step ---
 
-            // Filter the original options, excluding the selected dependent variable
-            const filteredChoices = originalIndepVarOptions.filter(choice => choice.value !== selectedDepVar);
-            
-            console.log(`Updating independent choices list. Excluding: ${selectedDepVar}`); 
+            // Filter original options, excluding the selected dependent variable
+            const availableOptions = originalIndepVarOptions.filter(opt => opt.value !== selectedDepVar);
 
-            // Replace the choices in the Choices.js dropdown instance
-            // The last 'true' argument forces replacement of the list
-            choicesIndep.setChoices(filteredChoices, 'value', 'label', true);
+            // Use Choices.js API to set available choices, keeping current selection
+            choicesIndep.setChoices(availableOptions, 'value', 'label', true);
         }
 
-        // --- Function to create/update description fields --- 
-        const descriptionContainer = document.getElementById('indep_var_descriptions');
-        function updateDescriptionFields() {
-            if (!choicesIndep || !descriptionContainer) return;
-            
-            const selectedItems = choicesIndep.getValue(true); // Get values of selected items
-            const existingFields = descriptionContainer.querySelectorAll('input[data-variable]');
-            const existingVars = Array.from(existingFields).map(input => input.dataset.variable);
-            
-            // Remove fields for variables that are no longer selected
-            existingFields.forEach(input => {
-                if (!selectedItems.includes(input.dataset.variable)) {
-                    input.closest('.indep-var-desc-group').remove();
-                }
-            });
+         // --- Function to update Grouping Variable Choices --- 
+        function updateGroupingChoices() {
+             if (!choicesGroup || !choicesIndep || !depVarSelect) return; // Exit if elements don't exist
 
-            // Add fields for newly selected variables
-            selectedItems.forEach(variable => {
-                if (!existingVars.includes(variable)) {
-                    const div = document.createElement('div');
-                    div.classList.add('mb-2', 'indep-var-desc-group');
-                    div.innerHTML = `
-                        <label for="desc_${variable}" class="form-label form-label-sm">Describe \`${variable}\`:</label>
-                        <input type="text" id="desc_${variable}" name="desc_${variable}" 
-                               data-variable="${variable}" 
-                               class="form-control form-control-sm" 
-                               placeholder="e.g., Index of body fat">
-                    `;
-                    descriptionContainer.appendChild(div);
-                }
-            });
+             const selectedDepVar = depVarSelect.value;
+             const selectedIndepVars = choicesIndep.getValue(true);
+             
+             // Filter original options: exclude dependent and selected independent variables
+             const availableGroupOptions = originalIndepVarOptions.filter(opt => 
+                opt.value !== selectedDepVar && !selectedIndepVars.includes(opt.value)
+             );
+             
+             choicesGroup.setChoices(availableGroupOptions, 'value', 'label', true);
         }
 
-        // --- Add Event Listener and Initial Call --- 
+        // --- Event Listeners --- 
         if (depVarSelect) {
-            depVarSelect.addEventListener('change', updateIndependentChoices);
-             // Initial update on page load in case a dependent var is already selected
-            updateIndependentChoices(); 
+            depVarSelect.addEventListener('change', function() {
+                updateIndependentChoices();
+                updateGroupingChoices();
+            });
         }
         
-        // Listener for changes in independent variable selection
-        if (indepVarSelectElement) {
-             indepVarSelectElement.addEventListener('change', updateDescriptionFields, false);
-             // Initial call to generate fields for any pre-selected values (e.g., on validation error refresh)
-             setTimeout(updateDescriptionFields, 100); // Delay slightly to ensure Choices.js is ready
+        if (choicesIndep) {
+            // Listen for changes in independent variables to update grouping choices
+            indepVarSelectElement.addEventListener('change', function() {
+                 updateGroupingChoices(); 
+                 
+                 // Also update dynamic description fields
+                 descriptionContainer.innerHTML = ''; // Clear existing
+                 const selectedValues = choicesIndep.getValue(true);
+                 selectedValues.forEach(value => {
+                    addDescriptionInput(value);
+                 });
+            });
         }
+
+        // Initial population
+        updateIndependentChoices();
+        updateGroupingChoices();
+        // Populate initial description fields based on pre-selected values (if any)
+        if (choicesIndep) {
+             choicesIndep.getValue(true).forEach(value => addDescriptionInput(value));
+        }
+
     });
 </script>
 {% endblock %} 
